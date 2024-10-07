@@ -6,7 +6,7 @@ This project implements various machine learning models for classifying text as 
 
 1. `clean_data.py`: Contains functions for data preprocessing, cleaning, and preparation.
 2. `linear_regression.py`: Implements logistic regression models for the classification tasks.
-3. `transformer.py`: Implements BERT-based transformer models for the classification tasks.
+3. `transformer.py`: Full Fine Tuning of BERT-based transformer model for the classification tasks.
 4. `naive_bayes.py`: Implements Multinomial Naive Bayes models for the classification tasks.
 5. `random_forest.py`: Implements Random Forest models for the classification tasks.
 6. `support_vector_machines.py`: Implements Support Vector Machine models for the classification tasks.
