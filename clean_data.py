@@ -84,7 +84,7 @@ for task in tasks:
     test_texts, test_labels = prepare_data(test_data, task, category_mapping, vector_mapping)
     
     # Initialize and fit TfidfVectorizer
-    vectorizer = TfidfVectorizer(tokenizer=Lemmatizer(), lowercase=False)
+    vectorizer = TfidfVectorizer(tokenizer=Lemmatizer(), lowercase=False, token_pattern=None)
     train_texts_vectorized = vectorizer.fit_transform(train_texts)
     val_texts_vectorized = vectorizer.transform(val_texts)
     test_texts_vectorized = vectorizer.transform(test_texts)
