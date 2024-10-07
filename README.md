@@ -5,7 +5,7 @@ This project implements various machine learning models for classifying text as 
 ## File Structure
 
 1. `clean_data.py`: Contains functions for data preprocessing, cleaning, and preparation.
-2. `linear_regression.py`: Implements logistic regression models for the classification tasks.
+2. `logistic_regression.py`: Implements logistic regression models for the classification tasks.
 3. `transformer.py`: Implements BERT-based transformer models for the classification tasks.
 
 ## Setup and Execution
@@ -18,7 +18,7 @@ This project implements various machine learning models for classifying text as 
 
 3. Run the logistic regression models:
 
-```python linear_regression.py [--use_smote True/False]```
+```python logistic_regression.py [--use_smote True/False]```
 
 4. Run the transformer model:
 
