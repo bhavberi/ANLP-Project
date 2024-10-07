@@ -8,6 +8,15 @@ from tqdm import tqdm
 import numpy as np
 from clean_data import process_data
 from scipy.sparse import issparse
+import argparse
+import random
+
+# Set random seed for reproducibility
+random_seed = 42
+random.seed(random_seed)
+np.random.seed(random_seed)
+torch.manual_seed(random_seed)
+print("Using Random Seed:", random_seed)
 
 def get_device():
     if torch.cuda.is_available():
@@ -147,10 +156,10 @@ def evaluate_model(model, data_loader, criterion, device):
 
     return avg_loss, accuracy, f1, precision, recall
 
-def main():
+def main(use_smote):
     # Process data
     csv_path = 'edos_labelled_aggregated.csv'  # Update this path as needed
-    datasets, category_mapping, vector_mapping = process_data(csv_path)
+    datasets, category_mapping, vector_mapping = process_data(csv_path, use_smote=use_smote)
 
     device = get_device()
     print(f"Using device: {device}")
@@ -160,6 +169,7 @@ def main():
     # Train and evaluate models for each task
     for task in ['binary', '5-way', '11-way']:
         print(f"\nTraining and evaluating {task} classification model")
+        print(f"SMOTE applied: {datasets[task]['smote_applied']}")
         
         # Prepare datasets
         train_texts, train_labels = datasets[task]['train']
@@ -185,7 +195,7 @@ def main():
         train_model(model, train_loader, val_loader, criterion, optimizer, device, task, num_epochs=5)
 
         # Load the best model
-        model.load_state_dict(torch.load(f'best_model_{task}.pth', map_location=device))
+        model.load_state_dict(torch.load(f'best_model_{task}.pth', map_location=device, weights_only=False))
 
         # Evaluate on test set
         test_loss, test_accuracy, test_f1, test_precision, test_recall = evaluate_model(model, test_loader, criterion, device)
@@ -198,4 +208,8 @@ def main():
         print(f"Macro Recall: {test_recall:.4f}")
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description='Train and evaluate transformer models with optional SMOTE sampling.')
+    parser.add_argument('--use_smote', type=bool, default=True, help='Whether to use SMOTE for data sampling (default: True)')
+    args = parser.parse_args()
+    
+    main(args.use_smote)

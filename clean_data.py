@@ -67,7 +67,7 @@ def prepare_data(data, task='binary', category_mapping=None, vector_mapping=None
     
     return texts, labels
 
-def process_data(csv_path):
+def process_data(csv_path, use_smote=True):
     # Load and preprocess data
     df = pd.read_csv(csv_path)
     category_mapping, vector_mapping = create_label_mappings(df)
@@ -89,23 +89,27 @@ def process_data(csv_path):
         val_texts_vectorized = vectorizer.transform(val_texts)
         test_texts_vectorized = vectorizer.transform(test_texts)
         
-        # Apply SMOTE for handling class imbalance for all tasks
-        smote = SMOTE(sampling_strategy='not majority')
-        train_texts_resampled, train_labels_resampled = smote.fit_resample(train_texts_vectorized, train_labels)
+        # Apply SMOTE for handling class imbalance if use_smote is True
+        if use_smote:
+            smote = SMOTE(sampling_strategy='not majority')
+            train_texts_resampled, train_labels_resampled = smote.fit_resample(train_texts_vectorized, train_labels)
+        else:
+            train_texts_resampled, train_labels_resampled = train_texts_vectorized, train_labels
         
         # Store prepared datasets
         datasets[task] = {
             'train': (train_texts_resampled, train_labels_resampled),
             'val': (val_texts_vectorized, val_labels),
-            'test': (test_texts_vectorized, test_labels)
+            'test': (test_texts_vectorized, test_labels),
+            'smote_applied': use_smote
         }
 
     return datasets, category_mapping, vector_mapping
 
 if __name__ == "__main__":
     # This block will only run if clean_data.py is executed directly
-    csv_path = 'edos_labelled_aggregated.csv'
-    datasets, category_mapping, vector_mapping = process_data(csv_path)
+    csv_path = 'edos_labelled_aggregated.csv'  # Update this path as needed
+    datasets, category_mapping, vector_mapping = process_data(csv_path, use_smote=True)
     
     # Print dataset information
     print("Datasets prepared for the following tasks:")
@@ -115,6 +119,7 @@ if __name__ == "__main__":
         print(f"  Validation shape: {datasets[task]['val'][0].shape}")
         print(f"  Test shape: {datasets[task]['test'][0].shape}")
         print(f"  Number of classes: {len(np.unique(datasets[task]['train'][1]))}")
+        print(f"  SMOTE applied: {datasets[task]['smote_applied']}")
 
         unique_labels, counts = np.unique(datasets[task]['train'][1], return_counts=True)
         print("  Category-wise shapes after resampling:")
