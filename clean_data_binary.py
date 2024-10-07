@@ -10,9 +10,8 @@ from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 
 # Download required NLTK data
-nltk.download('wordnet', download_dir='~/nltk_data/')
-nltk.download('stopwords', download_dir='~/nltk_data/')
-nltk.data.path.append('~/nltk_data/')
+nltk.download('wordnet', download_dir='./nltk_data/')
+nltk.data.path.append('./nltk_data/')
 
 # Define text cleaning function
 def clean_text(df):
