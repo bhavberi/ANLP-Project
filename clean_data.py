@@ -112,16 +112,17 @@ for task in datasets:
     print(f"  Validation shape: {datasets[task]['val'][0].shape}")
     print(f"  Test shape: {datasets[task]['test'][0].shape}")
     print(f"  Number of classes: {len(np.unique(datasets[task]['train'][1]))}")
-
-    # Print category-wise shapes for 5-way and 11-way classifications
-    if task in ['5-way', '11-way']:
-        unique_labels, counts = np.unique(datasets[task]['train'][1], return_counts=True)
-        print("  Category-wise shapes after resampling:")
-        for label, count in zip(unique_labels, counts):
-            if task == '5-way':
-                category = list(category_mapping.keys())[list(category_mapping.values()).index(label)]
-            else:  # 11-way
-                category = list(vector_mapping.keys())[list(vector_mapping.values()).index(label)]
-            print(f"    {category}: {count}")
+    
+    # Print category-wise shapes for all classification tasks
+    unique_labels, counts = np.unique(datasets[task]['train'][1], return_counts=True)
+    print("  Category-wise shapes after resampling:")
+    for label, count in zip(unique_labels, counts):
+        if task == 'binary':
+            category = "sexist" if label == 1 else "not sexist"
+        elif task == '5-way':
+            category = list(category_mapping.keys())[list(category_mapping.values()).index(label)]
+        else:  # 11-way
+            category = list(vector_mapping.keys())[list(vector_mapping.values()).index(label)]
+        print(f"    {category}: {count}")
     
     print()
