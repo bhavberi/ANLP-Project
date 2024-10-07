@@ -19,6 +19,7 @@ torch.manual_seed(random_seed)
 print("Using Random Seed:", random_seed)
 
 def get_device():
+    # Determine the available device (CUDA, MPS, or CPU)
     if torch.cuda.is_available():
         return torch.device("cuda")
     elif torch.backends.mps.is_available():
@@ -28,6 +29,7 @@ def get_device():
 
 class SentenceDataset(Dataset):
     def __init__(self, texts, labels, tokenizer, max_length=128):
+        # Convert sparse matrix to dense array if necessary
         self.texts = texts.toarray() if issparse(texts) else texts
         self.labels = labels
         self.tokenizer = tokenizer
@@ -37,9 +39,11 @@ class SentenceDataset(Dataset):
         return self.texts.shape[0]
 
     def __getitem__(self, idx):
+        # Convert text to string, removing zero padding
         text = ' '.join([str(word) for word in self.texts[idx] if word != 0])
         label = self.labels[idx]
 
+        # Tokenize and encode the text
         encoding = self.tokenizer.encode_plus(
             text,
             add_special_tokens=True,
@@ -60,22 +64,27 @@ class SentenceDataset(Dataset):
 class TransformerClassifier(nn.Module):
     def __init__(self, n_classes):
         super(TransformerClassifier, self).__init__()
+        # Load pre-trained BERT model
         self.bert = BertModel.from_pretrained('bert-base-uncased')
         self.drop = nn.Dropout(p=0.3)
+        # Add a linear layer for classification
         self.fc = nn.Linear(self.bert.config.hidden_size, n_classes)
 
     def forward(self, input_ids, attention_mask):
+        # Pass input through BERT
         _, pooled_output = self.bert(
             input_ids=input_ids,
             attention_mask=attention_mask,
             return_dict=False
         )
+        # Apply dropout and final classification layer
         output = self.drop(pooled_output)
         return self.fc(output)
 
 def train_model(model, train_loader, val_loader, criterion, optimizer, device, task, num_epochs=5):
     best_val_f1 = 0
     for epoch in range(num_epochs):
+        # Training phase
         model.train()
         train_loss = 0
         train_preds, train_true = [], []
@@ -95,7 +104,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, t
             train_preds.extend(preds.cpu().tolist())
             train_true.extend(labels.cpu().tolist())
 
-        # Validation
+        # Validation phase
         model.eval()
         val_loss = 0
         val_preds, val_true = [], []
@@ -113,6 +122,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, t
                 val_preds.extend(preds.cpu().tolist())
                 val_true.extend(labels.cpu().tolist())
 
+        # Calculate and print metrics
         train_loss /= len(train_loader)
         val_loss /= len(val_loader)
         train_accuracy = accuracy_score(train_true, train_preds)
@@ -124,6 +134,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, t
         print(f'Train Loss: {train_loss:.4f}, Train Accuracy: {train_accuracy:.4f}, Train Macro F1: {train_f1:.4f}')
         print(f'Val Loss: {val_loss:.4f}, Val Accuracy: {val_accuracy:.4f}, Val Macro F1: {val_f1:.4f}')
 
+        # Save the best model based on validation F1 score
         if val_f1 > best_val_f1:
             best_val_f1 = val_f1
             torch.save(model.state_dict(), f'best_model_{task}.pth')
@@ -148,6 +159,7 @@ def evaluate_model(model, data_loader, criterion, device):
             all_preds.extend(preds.cpu().tolist())
             all_true.extend(labels.cpu().tolist())
 
+    # Calculate evaluation metrics
     avg_loss = total_loss / len(data_loader)
     accuracy = accuracy_score(all_true, all_preds)
     f1 = f1_score(all_true, all_preds, average='macro')
@@ -200,6 +212,7 @@ def main(use_smote):
         # Evaluate on test set
         test_loss, test_accuracy, test_f1, test_precision, test_recall = evaluate_model(model, test_loader, criterion, device)
 
+        # Print test results
         print(f"\nTest Results for {task} classification:")
         print(f"Loss: {test_loss:.4f}")
         print(f"Accuracy: {test_accuracy:.4f}")
@@ -208,8 +221,10 @@ def main(use_smote):
         print(f"Macro Recall: {test_recall:.4f}")
 
 if __name__ == "__main__":
+    # Set up command-line argument parsing
     parser = argparse.ArgumentParser(description='Train and evaluate transformer models with optional SMOTE sampling.')
     parser.add_argument('--use_smote', type=bool, default=True, help='Whether to use SMOTE for data sampling (default: True)')
     args = parser.parse_args()
     
     main(args.use_smote)
+

@@ -14,6 +14,9 @@ nltk.download('punkt', quiet=True, download_dir='./nltk_data/')
 nltk.data.path.append('./nltk_data/')
 
 def clean_text(df):
+    """
+    Clean and preprocess text data from a DataFrame.
+    """
     lemmatizer = WordNetLemmatizer()
     data = list(zip(df['text'], df['label_sexist'], df['label_category'], df['label_vector'], df['split']))
     val_data, train_data, test_data = [], [], []
@@ -42,6 +45,9 @@ def clean_text(df):
     return train_data, val_data, test_data
 
 class Lemmatizer:
+    """
+    Custom lemmatizer class for use with TfidfVectorizer.
+    """
     def __init__(self):
         self.lemmatizer = WordNetLemmatizer()
 
@@ -49,11 +55,17 @@ class Lemmatizer:
         return [self.lemmatizer.lemmatize(word) for word in sentence.split() if len(word) > 2]
 
 def create_label_mappings(df):
+    """
+    Create mappings for category and vector labels.
+    """
     category_mapping = {cat: i for i, cat in enumerate(df['label_category'].unique())}
     vector_mapping = {vec: i for i, vec in enumerate(df['label_vector'].unique())}
     return category_mapping, vector_mapping
 
 def prepare_data(data, task='binary', category_mapping=None, vector_mapping=None):
+    """
+    Prepare data for a specific classification task.
+    """
     texts = np.array([' '.join(sentence) for sentence, *_ in data])
     
     if task == 'binary':
@@ -68,6 +80,9 @@ def prepare_data(data, task='binary', category_mapping=None, vector_mapping=None
     return texts, labels
 
 def process_data(csv_path, use_smote=True):
+    """
+    Main function to process data for all classification tasks.
+    """
     # Load and preprocess data
     df = pd.read_csv(csv_path)
     category_mapping, vector_mapping = create_label_mappings(df)

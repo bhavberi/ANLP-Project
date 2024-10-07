@@ -1,3 +1,4 @@
+# Import necessary libraries
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, f1_score
@@ -24,6 +25,7 @@ def train_and_evaluate(X_train, y_train, X_val, y_val, X_test, y_test, task):
     test_accuracy = accuracy_score(y_test, y_test_pred)
     test_f1 = f1_score(y_test, y_test_pred, average='macro')
 
+    # Print results for each dataset
     print(f"\nResults for {task} classification:")
     print(f"Training - Accuracy: {train_accuracy:.4f}, Macro F1: {train_f1:.4f}")
     print(f"Validation - Accuracy: {val_accuracy:.4f}, Macro F1: {val_f1:.4f}")
@@ -54,9 +56,11 @@ def main(use_smote):
     return models
 
 if __name__ == "__main__":
+    # Set up command-line argument parser
     parser = argparse.ArgumentParser(description='Train and evaluate logistic regression models with optional SMOTE sampling.')
     parser.add_argument('--use_smote', type=lambda x: (str(x).lower() == 'true'), default=True, help='Whether to use SMOTE for data sampling (default: True)')
     args = parser.parse_args()
     
+    # Run the main function with the specified SMOTE option
     trained_models = main(args.use_smote)
     print("\nTraining and evaluation completed for all tasks.")
