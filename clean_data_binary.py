@@ -4,12 +4,10 @@ import numpy as np
 import re
 from tqdm import tqdm
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
 from imblearn.over_sampling import SMOTE
 import nltk
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
-from nltk.corpus import stopwords
 
 # Download required NLTK data
 nltk.download('wordnet', download_dir='~/nltk_data/')
