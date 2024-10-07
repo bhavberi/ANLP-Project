@@ -1,0 +1,26 @@
+
+Training and evaluating binary classification model
+SMOTE applied: True
+
+Results for binary classification:
+Training - Accuracy: 0.8824, Macro F1: 0.8814
+Validation - Accuracy: 0.6735, Macro F1: 0.6364
+Test - Accuracy: 0.6713, Macro F1: 0.6377
+
+Training and evaluating 5-way classification model
+SMOTE applied: True
+
+Results for 5-way classification:
+Training - Accuracy: 0.9101, Macro F1: 0.9052
+Validation - Accuracy: 0.4925, Macro F1: 0.3057
+Test - Accuracy: 0.4825, Macro F1: 0.2952
+
+Training and evaluating 11-way classification model
+SMOTE applied: True
+
+Results for 11-way classification:
+Training - Accuracy: 0.9582, Macro F1: 0.9543
+Validation - Accuracy: 0.4285, Macro F1: 0.1486
+Test - Accuracy: 0.4143, Macro F1: 0.1530
+
+Training and evaluation completed for all tasks.

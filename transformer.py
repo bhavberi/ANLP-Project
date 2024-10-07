@@ -170,7 +170,7 @@ def evaluate_model(model, data_loader, criterion, device):
 
 def main(use_smote):
     # Process data
-    csv_path = 'edos_labelled_aggregated.csv'  # Update this path as needed
+    csv_path = 'edos_labelled_aggregated.csv'
     datasets, category_mapping, vector_mapping = process_data(csv_path, use_smote=use_smote)
 
     device = get_device()

@@ -16,14 +16,28 @@ This project implements various machine learning models for classifying text as 
 
 2. Ensure you have the dataset file `edos_labelled_aggregated.csv` in the same directory as the scripts.
 
-3. Run the logistic regression models:
+3. Run the models:
 
-```python logistic_regression.py [--use_smote True/False]```
-
-4. Run the transformer model:
-
-```python transformer.py [--use_smote True/False]```
-
+  - Logistic Regression:
+    ```
+    python linear_regression.py [--use_smote True/False]
+    ```
+  - Transformer (BERT):
+    ```
+    python transformer.py [--use_smote True/False]
+    ```
+  - Naive Bayes:
+    ```
+    python naive_bayes.py [--use_smote True/False]
+    ```
+  - Random Forest:
+    ```
+    python random_forest.py [--use_smote True/False]
+    ```
+  - Support Vector Machines:
+    ```
+    python support_vector_machines.py [--use_smote True/False]
+    ```
 
 The `--use_smote` flag is optional and defaults to True. Set it to False if you don't want to use SMOTE for data sampling.
 
@@ -31,4 +45,5 @@ The `--use_smote` flag is optional and defaults to True. Set it to False if you 
 
 - The scripts will automatically download required NLTK data to a local `nltk_data` directory.
 - Best models for each task in the transformer approach will be saved as `best_model_{task}.pth`.
-- Both scripts will print out performance metrics for each classification task.
+- All scripts will print out performance metrics for each classification task (binary, 5-way, and 11-way).
+- Each script trains and evaluates models for all three classification tasks.
