@@ -1,8 +1,8 @@
 # Import necessary libraries
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, f1_score
-from clean_data import process_data, apply_smote
-from utils import get_5label_from_11label, reverse_dict
+from utils.clean_data import process_data, apply_smote
+from utils.utils import get_5label_from_11label, reverse_dict
 import argparse
 import numpy as np
 

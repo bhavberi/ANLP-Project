@@ -6,7 +6,7 @@ from transformers import BertTokenizer, BertModel
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from tqdm import tqdm
 import numpy as np
-from clean_data import process_data
+from utils.clean_data import process_data
 from scipy.sparse import issparse
 import argparse
 import random

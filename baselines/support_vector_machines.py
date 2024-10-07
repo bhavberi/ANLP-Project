@@ -1,11 +1,11 @@
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score, f1_score
-from clean_data import process_data
+from utils.clean_data import process_data
 import argparse
 
 def train_and_evaluate(X_train, y_train, X_val, y_val, X_test, y_test, task):
     # Initialize and train the model
-    model = RandomForestClassifier()
+    model = SVC(kernel='rbf')
     model.fit(X_train, y_train)
 
     # Evaluate on training set
@@ -53,7 +53,7 @@ def main(use_smote):
     return models
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Train and evaluate Random Forest models with optional SMOTE sampling.')
+    parser = argparse.ArgumentParser(description='Train and evaluate SVM models with optional SMOTE sampling.')
     parser.add_argument('--use_smote', type=lambda x: (str(x).lower() == 'true'), default=True, help='Whether to use SMOTE for data sampling (default: True)')
     args = parser.parse_args()
     
