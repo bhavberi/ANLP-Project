@@ -165,8 +165,3 @@ events.out.tfevents.*
 
 # NLTK
 nltk_data/
-
-# Large files (adjust as needed)
-*.csv
-*.json
-*.txt
