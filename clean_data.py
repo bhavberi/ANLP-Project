@@ -79,6 +79,13 @@ def prepare_data(data, task='binary', category_mapping=None, vector_mapping=None
     
     return texts, labels
 
+def apply_smote(data, labels):
+    """
+    Apply SMOTE to handle class imbalance.
+    """
+    smote = SMOTE(sampling_strategy='not majority')
+    return smote.fit_resample(data, labels)
+
 def process_data(csv_path, use_smote=True):
     """
     Main function to process data for all classification tasks.
@@ -106,8 +113,7 @@ def process_data(csv_path, use_smote=True):
         
         # Apply SMOTE for handling class imbalance if use_smote is True
         if use_smote:
-            smote = SMOTE(sampling_strategy='not majority')
-            train_texts_resampled, train_labels_resampled = smote.fit_resample(train_texts_vectorized, train_labels)
+            train_texts_resampled, train_labels_resampled = apply_smote(train_texts_vectorized, train_labels)
         else:
             train_texts_resampled, train_labels_resampled = train_texts_vectorized, train_labels
         
