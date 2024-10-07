@@ -22,11 +22,11 @@ def clean_text(df):
     for counter, (sentence, label_sexist, label_category, label_vector, split) in enumerate(tqdm(data)):
         # Clean and preprocess the text
         sentence = sentence.strip().lower()
-        sentence = re.sub('https?://[^\s<>"]+|www\.[^\s<>"]+', '', sentence)
-        sentence = re.sub(r'\[(URL|USER)\]', '', sentence)
+        sentence = re.sub('https?://[^\s<>"]+|www\.[^\s<>"]+', '', sentence)  # Remove URLs
+        sentence = re.sub(r'\[(URL|USER)\]', '', sentence)  # Remove [URL] and [USER] tags
         tokenized_words = word_tokenize(sentence)
-        tokenized_words = [re.sub(r'[^a-z0-9]', '', word) for word in tokenized_words if word]
-        tokenized_words = [lemmatizer.lemmatize(word) for word in tokenized_words]
+        tokenized_words = [re.sub(r'[^a-z0-9]', '', word) for word in tokenized_words if word]  # Keep only alphanumeric characters
+        tokenized_words = [lemmatizer.lemmatize(word) for word in tokenized_words]  # Lemmatize words
         
         if not tokenized_words:
             print(f"Empty sentence at index {counter}: {df.iloc[counter]}")
@@ -50,11 +50,13 @@ class Lemmatizer:
     def __call__(self, sentence):
         return [self.lemmatizer.lemmatize(word) for word in sentence.split() if len(word) > 2]
 
+# Create label mappings for multi-class classification
 def create_label_mappings(df):
     category_mapping = {cat: i for i, cat in enumerate(df['label_category'].unique())}
     vector_mapping = {vec: i for i, vec in enumerate(df['label_vector'].unique())}
     return category_mapping, vector_mapping
 
+# Prepare data for different classification tasks
 def prepare_data(data, task='binary', category_mapping=None, vector_mapping=None):
     texts = np.array([' '.join(sentence) for sentence, *_ in data])
     
@@ -79,6 +81,7 @@ tasks = ['binary', '5-way', '11-way']
 datasets = {}
 
 for task in tasks:
+    # Prepare data for current task
     train_texts, train_labels = prepare_data(train_data, task, category_mapping, vector_mapping)
     val_texts, val_labels = prepare_data(val_data, task, category_mapping, vector_mapping)
     test_texts, test_labels = prepare_data(test_data, task, category_mapping, vector_mapping)
@@ -93,6 +96,7 @@ for task in tasks:
     smote = SMOTE(sampling_strategy='not majority')
     train_texts_resampled, train_labels_resampled = smote.fit_resample(train_texts_vectorized, train_labels)
     
+    # Store prepared datasets
     datasets[task] = {
         'train': (train_texts_resampled, train_labels_resampled),
         'val': (val_texts_vectorized, val_labels),
@@ -108,4 +112,16 @@ for task in datasets:
     print(f"  Validation shape: {datasets[task]['val'][0].shape}")
     print(f"  Test shape: {datasets[task]['test'][0].shape}")
     print(f"  Number of classes: {len(np.unique(datasets[task]['train'][1]))}")
+
+    # Print category-wise shapes for 5-way and 11-way classifications
+    if task in ['5-way', '11-way']:
+        unique_labels, counts = np.unique(datasets[task]['train'][1], return_counts=True)
+        print("  Category-wise shapes after resampling:")
+        for label, count in zip(unique_labels, counts):
+            if task == '5-way':
+                category = list(category_mapping.keys())[list(category_mapping.values()).index(label)]
+            else:  # 11-way
+                category = list(vector_mapping.keys())[list(vector_mapping.values()).index(label)]
+            print(f"    {category}: {count}")
+    
     print()
