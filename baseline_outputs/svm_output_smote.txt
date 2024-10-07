@@ -1,0 +1,33 @@
+==========================================
+SLURM_JOB_ID = 1222667
+SLURM_NODELIST = gnode069
+SLURM_JOB_GPUS = 
+==========================================
+activating conda environment
+training
+
+Training and evaluating binary classification model
+SMOTE applied: True
+
+Results for binary classification:
+Training - Accuracy: 0.9880, Macro F1: 0.9880
+Validation - Accuracy: 0.8245, Macro F1: 0.6894
+Test - Accuracy: 0.8303, Macro F1: 0.7032
+
+Training and evaluating 5-way classification model
+SMOTE applied: True
+
+Results for 5-way classification:
+Training - Accuracy: 0.9987, Macro F1: 0.9987
+Validation - Accuracy: 0.7860, Macro F1: 0.2952
+Test - Accuracy: 0.7855, Macro F1: 0.2878
+
+Training and evaluating 11-way classification model
+SMOTE applied: True
+
+Results for 11-way classification:
+Training - Accuracy: 0.9999, Macro F1: 0.9999
+Validation - Accuracy: 0.7825, Macro F1: 0.1504
+Test - Accuracy: 0.7817, Macro F1: 0.1402
+
+Training and evaluation completed for all tasks.
