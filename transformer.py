@@ -195,7 +195,7 @@ def main(use_smote):
         train_model(model, train_loader, val_loader, criterion, optimizer, device, task, num_epochs=5)
 
         # Load the best model
-        model.load_state_dict(torch.load(f'best_model_{task}.pth', map_location=device, weights_only=False))
+        model.load_state_dict(torch.load(f'best_model_{task}.pth', map_location=device, weights_only=True))
 
         # Evaluate on test set
         test_loss, test_accuracy, test_f1, test_precision, test_recall = evaluate_model(model, test_loader, criterion, device)
