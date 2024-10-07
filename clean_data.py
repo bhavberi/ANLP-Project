@@ -1,4 +1,3 @@
-# Import necessary libraries
 import pandas as pd
 import numpy as np
 import re
@@ -10,10 +9,10 @@ from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 
 # Download required NLTK data
-nltk.download('wordnet', download_dir='./nltk_data/')
+nltk.download('wordnet', quiet=True, download_dir='./nltk_data/')
+nltk.download('punkt', quiet=True, download_dir='./nltk_data/')
 nltk.data.path.append('./nltk_data/')
 
-# Define text cleaning function
 def clean_text(df):
     lemmatizer = WordNetLemmatizer()
     data = list(zip(df['text'], df['label_sexist'], df['label_category'], df['label_vector'], df['split']))
@@ -42,7 +41,6 @@ def clean_text(df):
     
     return train_data, val_data, test_data
 
-# Define custom lemmatizer for TfidfVectorizer
 class Lemmatizer:
     def __init__(self):
         self.lemmatizer = WordNetLemmatizer()
@@ -50,13 +48,11 @@ class Lemmatizer:
     def __call__(self, sentence):
         return [self.lemmatizer.lemmatize(word) for word in sentence.split() if len(word) > 2]
 
-# Create label mappings for multi-class classification
 def create_label_mappings(df):
     category_mapping = {cat: i for i, cat in enumerate(df['label_category'].unique())}
     vector_mapping = {vec: i for i, vec in enumerate(df['label_vector'].unique())}
     return category_mapping, vector_mapping
 
-# Prepare data for different classification tasks
 def prepare_data(data, task='binary', category_mapping=None, vector_mapping=None):
     texts = np.array([' '.join(sentence) for sentence, *_ in data])
     
@@ -71,58 +67,64 @@ def prepare_data(data, task='binary', category_mapping=None, vector_mapping=None
     
     return texts, labels
 
-# Load and preprocess data
-df = pd.read_csv('edos_labelled_aggregated.csv')
-category_mapping, vector_mapping = create_label_mappings(df)
-train_data, val_data, test_data = clean_text(df)
+def process_data(csv_path):
+    # Load and preprocess data
+    df = pd.read_csv(csv_path)
+    category_mapping, vector_mapping = create_label_mappings(df)
+    train_data, val_data, test_data = clean_text(df)
 
-# Prepare datasets for each classification task
-tasks = ['binary', '5-way', '11-way']
-datasets = {}
+    # Prepare datasets for each classification task
+    tasks = ['binary', '5-way', '11-way']
+    datasets = {}
 
-for task in tasks:
-    # Prepare data for current task
-    train_texts, train_labels = prepare_data(train_data, task, category_mapping, vector_mapping)
-    val_texts, val_labels = prepare_data(val_data, task, category_mapping, vector_mapping)
-    test_texts, test_labels = prepare_data(test_data, task, category_mapping, vector_mapping)
-    
-    # Initialize and fit TfidfVectorizer
-    vectorizer = TfidfVectorizer(tokenizer=Lemmatizer(), lowercase=False, token_pattern=None)
-    train_texts_vectorized = vectorizer.fit_transform(train_texts)
-    val_texts_vectorized = vectorizer.transform(val_texts)
-    test_texts_vectorized = vectorizer.transform(test_texts)
-    
-    # Apply SMOTE for handling class imbalance for all tasks
-    smote = SMOTE(sampling_strategy='not majority')
-    train_texts_resampled, train_labels_resampled = smote.fit_resample(train_texts_vectorized, train_labels)
-    
-    # Store prepared datasets
-    datasets[task] = {
-        'train': (train_texts_resampled, train_labels_resampled),
-        'val': (val_texts_vectorized, val_labels),
-        'test': (test_texts_vectorized, test_labels)
-    }
+    for task in tasks:
+        # Prepare data for current task
+        train_texts, train_labels = prepare_data(train_data, task, category_mapping, vector_mapping)
+        val_texts, val_labels = prepare_data(val_data, task, category_mapping, vector_mapping)
+        test_texts, test_labels = prepare_data(test_data, task, category_mapping, vector_mapping)
+        
+        # Initialize and fit TfidfVectorizer
+        vectorizer = TfidfVectorizer(tokenizer=Lemmatizer(), lowercase=False, token_pattern=None)
+        train_texts_vectorized = vectorizer.fit_transform(train_texts)
+        val_texts_vectorized = vectorizer.transform(val_texts)
+        test_texts_vectorized = vectorizer.transform(test_texts)
+        
+        # Apply SMOTE for handling class imbalance for all tasks
+        smote = SMOTE(sampling_strategy='not majority')
+        train_texts_resampled, train_labels_resampled = smote.fit_resample(train_texts_vectorized, train_labels)
+        
+        # Store prepared datasets
+        datasets[task] = {
+            'train': (train_texts_resampled, train_labels_resampled),
+            'val': (val_texts_vectorized, val_labels),
+            'test': (test_texts_vectorized, test_labels)
+        }
 
-# Print dataset information
-print("Datasets prepared for the following tasks:")
-for task in datasets:
-    print(f"- {task} classification")
-    print(f"  Original train shape: {train_texts_vectorized.shape}")
-    print(f"  Resampled train shape: {datasets[task]['train'][0].shape}")
-    print(f"  Validation shape: {datasets[task]['val'][0].shape}")
-    print(f"  Test shape: {datasets[task]['test'][0].shape}")
-    print(f"  Number of classes: {len(np.unique(datasets[task]['train'][1]))}")
+    return datasets, category_mapping, vector_mapping
+
+if __name__ == "__main__":
+    # This block will only run if clean_data.py is executed directly
+    csv_path = 'edos_labelled_aggregated.csv'
+    datasets, category_mapping, vector_mapping = process_data(csv_path)
     
-    # Print category-wise shapes for all classification tasks
-    unique_labels, counts = np.unique(datasets[task]['train'][1], return_counts=True)
-    print("  Category-wise shapes after resampling:")
-    for label, count in zip(unique_labels, counts):
-        if task == 'binary':
-            category = "sexist" if label == 1 else "not sexist"
-        elif task == '5-way':
-            category = list(category_mapping.keys())[list(category_mapping.values()).index(label)]
-        else:  # 11-way
-            category = list(vector_mapping.keys())[list(vector_mapping.values()).index(label)]
-        print(f"    {category}: {count}")
-    
-    print()
+    # Print dataset information
+    print("Datasets prepared for the following tasks:")
+    for task in datasets:
+        print(f"- {task} classification")
+        print(f"  Train shape: {datasets[task]['train'][0].shape}")
+        print(f"  Validation shape: {datasets[task]['val'][0].shape}")
+        print(f"  Test shape: {datasets[task]['test'][0].shape}")
+        print(f"  Number of classes: {len(np.unique(datasets[task]['train'][1]))}")
+
+        unique_labels, counts = np.unique(datasets[task]['train'][1], return_counts=True)
+        print("  Category-wise shapes after resampling:")
+        for label, count in zip(unique_labels, counts):
+            if task == 'binary':
+                category = "sexist" if label == 1 else "not sexist"
+            elif task == '5-way':
+                category = list(category_mapping.keys())[list(category_mapping.values()).index(label)]
+            else:  # 11-way
+                category = list(vector_mapping.keys())[list(vector_mapping.values()).index(label)]
+            print(f"    {category}: {count}")
+        
+        print()
