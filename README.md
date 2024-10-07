@@ -1,15 +1,23 @@
-# ANLP-Project
+## _Explainable Detection of Online Sexism_ (EDOS)
+
+> **Team**: `UP_Wale` \
+> **Team Number**: 36
+> 
+> **Team Members**: Bhav Beri (2021111013), Divij(2021101001), Maharnav Singhal(2021115001)
+
+----
 
 This project implements various machine learning models for classifying text as sexist or not, using different classification schemes (binary, 5-way, and 11-way).
 
 ## File Structure
 
-1. `clean_data.py`: Contains functions for data preprocessing, cleaning, and preparation.
-2. `linear_regression.py`: Implements logistic regression models for the classification tasks.
+1. `utils/clean_data.py`: Contains functions for data preprocessing, cleaning, and preparation.
+2. `baselines/linear_regression.py`: Implements logistic regression models for the classification tasks.
+4. `baselines/naive_bayes.py`: Implements Multinomial Naive Bayes models for the classification tasks.
+5. `baselines/random_forest.py`: Implements Random Forest models for the classification tasks.
+6. `baselines/support_vector_machines.py`: Implements Support Vector Machine models for the classification tasks.
+4. `hierarchical.py`: Hierarchical Classification using Logistic Regression.
 3. `transformer.py`: Full Fine Tuning of BERT-based transformer model for the classification tasks.
-4. `naive_bayes.py`: Implements Multinomial Naive Bayes models for the classification tasks.
-5. `random_forest.py`: Implements Random Forest models for the classification tasks.
-6. `support_vector_machines.py`: Implements Support Vector Machine models for the classification tasks.
 
 ## Setup and Execution
 
@@ -23,23 +31,27 @@ This project implements various machine learning models for classifying text as 
 
   - Logistic Regression:
     ```
-    python linear_regression.py [--use_smote True/False]
+    python baselines/linear_regression.py [--use_smote True/False]
+    ```
+  - Naive Bayes:
+    ```
+    python baselines/naive_bayes.py [--use_smote True/False]
+    ```
+  - Random Forest:
+    ```
+    python baselines/random_forest.py [--use_smote True/False]
+    ```
+  - Support Vector Machines:
+    ```
+    python baselines/support_vector_machines.py [--use_smote True/False]
+    ```
+  - Hierarchical Classification:
+    ```
+    python hierarchical.py [--use_smote True/False]
     ```
   - Transformer (BERT):
     ```
     python transformer.py [--use_smote True/False]
-    ```
-  - Naive Bayes:
-    ```
-    python naive_bayes.py [--use_smote True/False]
-    ```
-  - Random Forest:
-    ```
-    python random_forest.py [--use_smote True/False]
-    ```
-  - Support Vector Machines:
-    ```
-    python support_vector_machines.py [--use_smote True/False]
     ```
 
 The `--use_smote` flag is optional and defaults to True. Set it to False if you don't want to use SMOTE for data sampling.
