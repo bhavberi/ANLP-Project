@@ -8,10 +8,32 @@ import torch.nn as nn
 import torch.optim as optim
 from scipy.sparse import issparse
 from torch.utils.data import Dataset, DataLoader
-from transformers import BertTokenizer, BertModel
+from peft import get_peft_model, LoraConfig, TaskType
+from transformers import (
+    BertTokenizer,
+    BertModel,
+    BertForSequenceClassification,
+    RobertaForSequenceClassification,
+    DistilBertForSequenceClassification,
+    AlbertForSequenceClassification,
+)
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 
 from utils.clean_data import process_data
+
+models = {
+    "bert-tiny": "prajjwal1/bert-tiny",
+    "bert-mini": "prajjwal1/bert-mini",
+    "bert-small": "prajjwal1/bert-small",
+    "bert-medium": "prajjwal1/bert-medium",
+    "bert-base": "bert-base-uncased",
+    "bert-large": "bert-large-uncased",
+    "roberta-base": "roberta-base",
+    "roberta-large": "roberta-large",
+    "distilbert-base": "distilbert-base-uncased",
+    "albert-base": "albert-base-v2",
+    "albert-large": "albert-large-v2",
+}
 
 
 def setup():
@@ -46,12 +68,9 @@ class SentenceDataset(Dataset):
     def _preprocess_texts(self):
         encodings = []
         for text in tqdm(self.texts):
-            # Convert text to string, removing zero padding
-            text_str = " ".join([str(word) for word in text if word != 0])
-
             # Tokenize and encode the text
             encoding = self.tokenizer.encode_plus(
-                text_str,
+                text,
                 add_special_tokens=True,
                 max_length=self.max_length,
                 return_token_type_ids=False,
@@ -85,13 +104,60 @@ class SentenceDataset(Dataset):
 
 
 class TransformerClassifier(nn.Module):
-    def __init__(self, n_classes=1, dropout=0.3, hidden_size=128):
+    def __init__(self, n_classes=1, model="bert-tiny", LoRA=False):
         super(TransformerClassifier, self).__init__()
-        self.bert = BertModel.from_pretrained("bert-base-uncased")
-        self.layer_norm = nn.LayerNorm(self.bert.config.hidden_size)
+
+        assert model in models.keys(), f"Model {model} not found in available models."
+
+        if model.split("-")[0] == "bert":
+            self.transformer = BertForSequenceClassification.from_pretrained(
+                models[model], num_labels=n_classes
+            )
+        elif model.split("-")[0] == "roberta":
+            self.transformer = RobertaForSequenceClassification.from_pretrained(
+                models[model], num_labels=n_classes
+            )
+        elif model.split("-")[0] == "distilbert":
+            self.transformer = DistilBertForSequenceClassification.from_pretrained(
+                models[model], num_labels=n_classes
+            )
+        elif model.split("-")[0] == "albert":
+            self.transformer = AlbertForSequenceClassification.from_pretrained(
+                models[model], num_labels=n_classes
+            )
+
+        if LoRA:
+            self._apply_lora()
+
+    def _apply_lora(self):
+        # LoRA configuration for PEFT
+        peft_config = LoraConfig(
+            task_type=TaskType.SEQ_CLS,  # Sequence classification task
+            inference_mode=False,  # Training mode
+            r=16,  # LoRA rank
+            lora_alpha=32,  # Scaling parameter
+            lora_dropout=0.1,  # Dropout for LoRA layers
+        )
+
+        # Apply LoRA to the sequence classification model
+        self.transformer = get_peft_model(self.transformer, peft_config)
+
+    def forward(self, input_ids, attention_mask, labels=None):
+        # Forward pass through LoRA-adapted BERTForSequenceClassification
+        outputs = self.transformer(
+            input_ids=input_ids, attention_mask=attention_mask, labels=labels
+        )
+        return outputs
+
+
+class TransformerClassifierOld(nn.Module):
+    def __init__(self, n_classes=1, dropout=0.3, hidden_size=128, model="bert-tiny"):
+        super(TransformerClassifierOld, self).__init__()
+        self.transformer = BertModel.from_pretrained(models[model])
+        self.layer_norm = nn.LayerNorm(self.transformer.config.hidden_size)
 
         self.classifier = nn.Sequential(
-            nn.Linear(self.bert.config.hidden_size, hidden_size),
+            nn.Linear(self.transformer.config.hidden_size, hidden_size),
             nn.ReLU(),
             nn.Dropout(dropout),
             nn.Linear(hidden_size, n_classes),
@@ -99,7 +165,7 @@ class TransformerClassifier(nn.Module):
 
     def forward(self, input_ids, attention_mask):
         # Pass input through BERT
-        _, pooled_output = self.bert(
+        _, pooled_output = self.transformer(
             input_ids=input_ids, attention_mask=attention_mask, return_dict=False
         )
 
@@ -116,11 +182,11 @@ def train_model(
     model,
     train_loader,
     val_loader,
-    criterion,
     optimizer,
     device,
     task,
     num_epochs=5,
+    save_path=None,
 ):
     best_val_f1 = 0
     for epoch in range(num_epochs):
@@ -136,13 +202,17 @@ def train_model(
             labels = batch["label"].to(device)
 
             optimizer.zero_grad()
-            outputs = model(input_ids, attention_mask)
-            loss = criterion(outputs, labels)
+
+            # Forward pass through the model (includes loss computation)
+            outputs = model(input_ids, attention_mask, labels=labels)
+            loss = outputs.loss  # Use the loss computed by the model
+            logits = outputs.logits  # Extract logits for predictions
+
             loss.backward()
             optimizer.step()
 
             train_loss += loss.item()
-            _, preds = torch.max(outputs, dim=1)
+            _, preds = torch.max(logits, dim=1)
             train_preds.extend(preds.cpu().tolist())
             train_true.extend(labels.cpu().tolist())
 
@@ -158,11 +228,13 @@ def train_model(
                 attention_mask = batch["attention_mask"].to(device)
                 labels = batch["label"].to(device)
 
-                outputs = model(input_ids, attention_mask)
-                loss = criterion(outputs, labels)
-                val_loss += loss.item()
+                # Forward pass during evaluation
+                outputs = model(input_ids, attention_mask, labels=labels)
+                loss = outputs.loss  # Validation loss computed by the model
+                logits = outputs.logits  # Logits for predictions
 
-                _, preds = torch.max(outputs, dim=1)
+                val_loss += loss.item()
+                _, preds = torch.max(logits, dim=1)
                 val_preds.extend(preds.cpu().tolist())
                 val_true.extend(labels.cpu().tolist())
 
@@ -185,11 +257,12 @@ def train_model(
         # Save the best model based on validation F1 score
         if val_f1 > best_val_f1:
             best_val_f1 = val_f1
-            torch.save(model.state_dict(), f"best_model_{task}.pth")
+            if save_path:
+                torch.save(model.state_dict(), save_path)
             print(f"Saved best model for {task} classification.")
 
 
-def evaluate_model(model, data_loader, criterion, device):
+def evaluate_model(model, data_loader, device):
     model.eval()
     total_loss = 0
     all_preds, all_true = [], []
@@ -200,11 +273,12 @@ def evaluate_model(model, data_loader, criterion, device):
             attention_mask = batch["attention_mask"].to(device)
             labels = batch["label"].to(device)
 
-            outputs = model(input_ids, attention_mask)
-            loss = criterion(outputs, labels)
-            total_loss += loss.item()
+            outputs = model(input_ids, attention_mask, labels=labels)
+            loss = outputs.loss
+            logits = outputs.logits
 
-            _, preds = torch.max(outputs, dim=1)
+            total_loss += loss.item()
+            _, preds = torch.max(logits, dim=1)
             all_preds.extend(preds.cpu().tolist())
             all_true.extend(labels.cpu().tolist())
 
@@ -212,18 +286,16 @@ def evaluate_model(model, data_loader, criterion, device):
     avg_loss = total_loss / len(data_loader)
     accuracy = accuracy_score(all_true, all_preds)
     f1 = f1_score(all_true, all_preds, average="macro")
-    precision = precision_score(all_true, all_preds, average="macro")
+    precision = precision_score(all_true, all_preds, average="macro", zero_division=0)
     recall = recall_score(all_true, all_preds, average="macro")
 
     return avg_loss, accuracy, f1, precision, recall
 
 
-def main(use_smote, num_epochs=5):
+def main(num_epochs=5, model="bert-tiny"):
     # Process data
     csv_path = "edos_labelled_aggregated.csv"
-    datasets, category_mapping, vector_mapping = process_data(
-        csv_path, use_smote=use_smote
-    )
+    datasets, _, _ = process_data(csv_path, vectorize=False)
 
     device = setup()
 
@@ -252,31 +324,31 @@ def main(use_smote, num_epochs=5):
         # Initialize the model
         print("Creating model")
         n_classes = len(np.unique(train_labels))
-        model = TransformerClassifier(n_classes=n_classes).to(device)
+        model = TransformerClassifier(n_classes=n_classes, model=model).to(device)
         optimizer = optim.AdamW(model.parameters(), lr=2e-5)
 
-        criterion = nn.CrossEntropyLoss()
+        save_path = f"best_model_{task}_{model}.pth"
 
         # Train the model
         train_model(
             model,
             train_loader,
             val_loader,
-            criterion,
             optimizer,
             device,
             task,
             num_epochs=num_epochs,
+            save_path=save_path,
         )
 
         # Load the best model
         model.load_state_dict(
-            torch.load(f"best_model_{task}.pth", map_location=device, weights_only=True)
+            torch.load(save_path, map_location=device, weights_only=True)
         )
 
         # Evaluate on test set
         test_loss, test_accuracy, test_f1, test_precision, test_recall = evaluate_model(
-            model, test_loader, criterion, device
+            model, test_loader, device
         )
 
         # Print test results
@@ -293,17 +365,18 @@ if __name__ == "__main__":
         description="Train and evaluate transformer models with optional SMOTE sampling."
     )
     parser.add_argument(
-        "--use_smote",
-        type=lambda x: (str(x).lower() == "true"),
-        default=True,
-        help="Whether to use SMOTE for data sampling (default: True)",
-    )
-    parser.add_argument(
         "--num_epochs",
         type=int,
-        default=5,
-        help="Number of epochs to train the model (default: 5)",
+        default=10,
+        help="Number of epochs to train the model (default: 10)",
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="bert-tiny",
+        choices=models.keys(),
+        help="Model to use for training (default: bert-tiny)",
     )
     args = parser.parse_args()
 
-    main(args.use_smote, args.num_epochs)
+    main(args.num_epochs, args.model)

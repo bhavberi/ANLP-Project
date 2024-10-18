@@ -86,7 +86,7 @@ def apply_smote(data, labels):
     smote = SMOTE(sampling_strategy='not majority')
     return smote.fit_resample(data, labels)
 
-def process_data(csv_path, use_smote=True):
+def process_data(csv_path, use_smote=True, vectorize=True):
     """
     Main function to process data for all classification tasks.
     """
@@ -104,28 +104,32 @@ def process_data(csv_path, use_smote=True):
         train_texts, train_labels = prepare_data(train_data, task, category_mapping, vector_mapping)
         val_texts, val_labels = prepare_data(val_data, task, category_mapping, vector_mapping)
         test_texts, test_labels = prepare_data(test_data, task, category_mapping, vector_mapping)
-        
-        # Initialize and fit TfidfVectorizer
-        vectorizer = TfidfVectorizer(tokenizer=Lemmatizer(), lowercase=False, token_pattern=None)
-        train_texts_vectorized = vectorizer.fit_transform(train_texts)
-        val_texts_vectorized = vectorizer.transform(val_texts)
-        test_texts_vectorized = vectorizer.transform(test_texts)
-        
-        # Apply SMOTE for handling class imbalance if use_smote is True
-        if use_smote:
-            train_texts_resampled, train_labels_resampled = apply_smote(train_texts_vectorized, train_labels)
+
+        if vectorize:
+            # Initialize and fit TfidfVectorizer
+            vectorizer = TfidfVectorizer(tokenizer=Lemmatizer(), lowercase=False)
+            train_texts_vectorized = vectorizer.fit_transform(train_texts)
+            val_texts_vectorized = vectorizer.transform(val_texts)
+            test_texts_vectorized = vectorizer.transform(test_texts)
+            
+            # Apply SMOTE for handling class imbalance if use_smote is True
+            if use_smote:
+                train_texts_resampled, train_labels_resampled = apply_smote(train_texts_vectorized, train_labels)
+            else:
+                train_texts_resampled, train_labels_resampled = train_texts_vectorized, train_labels
         else:
-            train_texts_resampled, train_labels_resampled = train_texts_vectorized, train_labels
-        
+            train_texts_resampled, train_labels_resampled = train_texts, train_labels
+
         # Store prepared datasets
         datasets[task] = {
             'train': (train_texts_resampled, train_labels_resampled),
-            'val': (val_texts_vectorized, val_labels),
-            'test': (test_texts_vectorized, test_labels),
+            'val': (val_texts if not vectorize else val_texts_vectorized, val_labels),
+            'test': (test_texts if not vectorize else test_texts_vectorized, test_labels),
             'smote_applied': use_smote
         }
 
     return datasets, category_mapping, vector_mapping
+
 
 if __name__ == "__main__":
     # This block will only run if clean_data.py is executed directly
