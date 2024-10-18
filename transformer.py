@@ -45,7 +45,7 @@ class SentenceDataset(Dataset):
 
     def _preprocess_texts(self):
         encodings = []
-        for text in self.texts:
+        for text in tqdm(self.texts):
             # Convert text to string, removing zero padding
             text_str = " ".join([str(word) for word in text if word != 0])
 
@@ -85,20 +85,13 @@ class SentenceDataset(Dataset):
 
 
 class TransformerClassifier(nn.Module):
-    def __init__(self, n_classes=1, dropout=0.3, hidden_size=256):
+    def __init__(self, n_classes=1, dropout=0.3, hidden_size=128):
         super(TransformerClassifier, self).__init__()
-
-        if n_classes == 2:
-            n_classes = 1
-
         self.bert = BertModel.from_pretrained("bert-base-uncased")
         self.layer_norm = nn.LayerNorm(self.bert.config.hidden_size)
 
         self.classifier = nn.Sequential(
             nn.Linear(self.bert.config.hidden_size, hidden_size),
-            nn.ReLU(),
-            nn.Dropout(dropout),
-            nn.Linear(hidden_size, hidden_size//4),
             nn.ReLU(),
             nn.Dropout(dropout),
             nn.Linear(hidden_size, n_classes),
@@ -120,7 +113,14 @@ class TransformerClassifier(nn.Module):
 
 
 def train_model(
-    model, train_loader, val_loader, criterion, optimizer, device, task, num_epochs=5
+    model,
+    train_loader,
+    val_loader,
+    criterion,
+    optimizer,
+    device,
+    task,
+    num_epochs=5,
 ):
     best_val_f1 = 0
     for epoch in range(num_epochs):
@@ -239,6 +239,7 @@ def main(use_smote, num_epochs=5):
         val_texts, val_labels = datasets[task]["val"]
         test_texts, test_labels = datasets[task]["test"]
 
+        print("Making datasets")
         train_dataset = SentenceDataset(train_texts, train_labels, tokenizer)
         val_dataset = SentenceDataset(val_texts, val_labels, tokenizer)
         test_dataset = SentenceDataset(test_texts, test_labels, tokenizer)
@@ -249,14 +250,12 @@ def main(use_smote, num_epochs=5):
         test_loader = DataLoader(test_dataset, batch_size=64)
 
         # Initialize the model
+        print("Creating model")
         n_classes = len(np.unique(train_labels))
         model = TransformerClassifier(n_classes=n_classes).to(device)
         optimizer = optim.AdamW(model.parameters(), lr=2e-5)
 
-        if n_classes == 2:
-            criterion = nn.BCEWithLogitsLoss()
-        else:
-            criterion = nn.CrossEntropyLoss()
+        criterion = nn.CrossEntropyLoss()
 
         # Train the model
         train_model(
@@ -295,7 +294,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--use_smote",
-        type=bool,
+        type=lambda x: (str(x).lower() == "true"),
         default=True,
         help="Whether to use SMOTE for data sampling (default: True)",
     )
