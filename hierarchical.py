@@ -6,6 +6,7 @@ from utils.utils import get_5label_from_11label, reverse_dict
 import argparse
 import numpy as np
 
+
 def main(use_smote, max_iter=1000, jump_1_11=False):
     # Process data
     csv_path = "edos_labelled_aggregated.csv"
@@ -14,7 +15,7 @@ def main(use_smote, max_iter=1000, jump_1_11=False):
     )
 
     # Binary classification
-    print(f"\nTraining and evaluating {'binary'} classification model")
+    print("\nTraining and evaluating binary classification model")
     print(f"SMOTE applied: {datasets['binary']['smote_applied']}")
 
     # Prepare datasets
@@ -22,16 +23,16 @@ def main(use_smote, max_iter=1000, jump_1_11=False):
     X_val_b, y_val_b = datasets["binary"]["val"]
     X_test_b, y_test_b = datasets["binary"]["test"]
 
-    X_train_b_resampled, y_train_b_resampled = apply_smote(X_train_b, y_train_b)
+    X_train_b_resampled, y_train_b_resampled = apply_smote(X_train_b, y_train_b)  # type: ignore
 
     # Train the binary model
     model_b = LogisticRegression(max_iter=max_iter)
     model_b.fit(X_train_b_resampled, y_train_b_resampled)
 
     # Evaluate the binary model in Validation set
-    y_pred_b = model_b.predict(X_val_b)
-    val_accuracy_b = accuracy_score(y_val_b, y_pred_b)
-    val_f1_b = f1_score(y_val_b, y_pred_b, average="macro")
+    y_pred_val_b = model_b.predict(X_val_b)
+    val_accuracy_b = accuracy_score(y_val_b, y_pred_val_b)
+    val_f1_b = f1_score(y_val_b, y_pred_val_b, average="macro")
 
     # Evaluate the binary model in Test set
     y_pred_b = model_b.predict(X_test_b)
@@ -39,15 +40,15 @@ def main(use_smote, max_iter=1000, jump_1_11=False):
     test_f1_b = f1_score(y_test_b, y_pred_b, average="macro")
 
     # Print overall evaluation for binary model
-    print(f"\n{'Binary'} classification model evaluation on Validation Set:")
+    print("\nBinary classification model evaluation on Validation Set:")
     print(f"Validation accuracy: {val_accuracy_b:.4f}")
     print(f"Validation F1 score: {val_f1_b:.4f}")
-    print(f"\n{'Binary'} classification model evaluation on Test Set:")
+    print("\nBinary classification model evaluation on Test Set:")
     print(f"Test accuracy: {test_accuracy_b:.4f}")
     print(f"Test F1 score: {test_f1_b:.4f}")
 
     # 5-way classification
-    print(f"\nTraining and evaluating {'5-way'} classification model")
+    print("\nTraining and evaluating 5-way classification model")
     print(f"SMOTE applied: {datasets['5-way']['smote_applied']}")
 
     x_train_5, y_train_5 = datasets["5-way"]["train"]
@@ -56,21 +57,21 @@ def main(use_smote, max_iter=1000, jump_1_11=False):
     X_val_5, y_val_5 = datasets["5-way"]["val"]
     x_test_5, y_test_5 = datasets["5-way"]["test"]
 
-    x_train_5_resampled, y_train_5_resampled = apply_smote(x_train_5, y_train_5)
+    x_train_5_resampled, y_train_5_resampled = apply_smote(x_train_5, y_train_5)  # type: ignore
 
     # Train the model
     model_5 = LogisticRegression(max_iter=max_iter)
     model_5.fit(x_train_5_resampled, y_train_5_resampled)
 
     # initialize an empty numpy array to store the predictions for the 5-way classification
-    y_pred_5 = np.zeros(len(y_pred_b))
+    y_pred_5 = y_pred_b.copy()
     for i, y in enumerate(y_test_5):
         if y != 0:
             y_pred_5[i] = model_5.predict(x_test_5[i].reshape(1, -1))
     test_accuracy_5 = accuracy_score(y_test_5, y_pred_5)
     test_f1_5 = f1_score(y_test_5, y_pred_5, average="macro")
 
-    y_pred_val_5 = np.zeros(len(y_val_5))
+    y_pred_val_5 = y_pred_val_b.copy()
     for i, y in enumerate(y_val_5):
         if y != 0:
             y_pred_val_5[i] = model_5.predict(X_val_5[i].reshape(1, -1))
@@ -78,10 +79,10 @@ def main(use_smote, max_iter=1000, jump_1_11=False):
     val_f1_5 = f1_score(y_val_5, y_pred_val_5, average="macro")
 
     # Print overall evaluation for 5-way model
-    print(f"\n{'5-way'} classification model evaluation on Validation Set:")
+    print("\n5-way classification model evaluation on Validation Set:")
     print(f"Validation accuracy: {val_accuracy_5:.4f}")
     print(f"Validation F1 score: {val_f1_5:.4f}")
-    print(f"\n{'5-way'} classification model evaluation on Test Set:")
+    print("\n5-way classification model evaluation on Test Set:")
     print(f"Test accuracy: {test_accuracy_5:.4f}")
     print(f"Test F1 score: {test_f1_5:.4f}")
 
@@ -96,21 +97,21 @@ def main(use_smote, max_iter=1000, jump_1_11=False):
         X_val_11, y_val_11 = datasets["11-way"]["val"]
         x_test_11, y_test_11 = datasets["11-way"]["test"]
 
-        x_train_11_resampled, y_train_11_resampled = apply_smote(x_train_11, y_train_11)
+        x_train_11_resampled, y_train_11_resampled = apply_smote(x_train_11, y_train_11)  # type: ignore
 
         # Train the model
         model_11 = LogisticRegression(max_iter=max_iter)
         model_11.fit(x_train_11_resampled, y_train_11_resampled)
 
         # initialize an empty numpy array to store the predictions for the 11-way classification
-        y_pred_11 = np.zeros(len(y_pred_b))
+        y_pred_11 = y_pred_b.copy()
         for i, y in enumerate(y_test_11):
             if y != 0:
                 y_pred_11[i] = model_11.predict(x_test_11[i].reshape(1, -1))
         test_accuracy_11 = accuracy_score(y_test_11, y_pred_11)
         test_f1_11 = f1_score(y_test_11, y_pred_11, average="macro")
 
-        y_pred_val_11 = np.zeros(len(y_val_11))
+        y_pred_val_11 = y_pred_val_b.copy()
         for i, y in enumerate(y_val_11):
             if y != 0:
                 y_pred_val_11[i] = model_11.predict(X_val_11[i].reshape(1, -1))
@@ -118,10 +119,10 @@ def main(use_smote, max_iter=1000, jump_1_11=False):
         val_f1_11 = f1_score(y_val_11, y_pred_val_11, average="macro")
 
         # Print overall evaluation for 11-way model
-        print(f"\n{'11-way'} classification model evaluation on Validation Set:")
+        print("\n11-way classification model evaluation on Validation Set:")
         print(f"Validation accuracy: {val_accuracy_11:.4f}")
         print(f"Validation F1 score: {val_f1_11:.4f}")
-        print(f"\n{'11-way'} classification model evaluation on Test Set:")
+        print("\n11-way classification model evaluation on Test Set:")
         print(f"Test accuracy: {test_accuracy_11:.4f}")
         print(f"Test F1 score: {test_f1_11:.4f}")
 
@@ -141,7 +142,9 @@ def main(use_smote, max_iter=1000, jump_1_11=False):
     x_test_11, y_test_11 = datasets["11-way"]["test"]
 
     reverse_vector_mapping = reverse_dict(vector_mapping)
-    y_train_11_5 = np.array([get_5label_from_11label(reverse_vector_mapping[y]) for y in y_train_11])
+    y_train_11_5 = np.array(
+        [get_5label_from_11label(reverse_vector_mapping[y]) for y in y_train_11]
+    )
 
     datasets = {
         i: (x_train_11[y_train_11_5 == i], y_train_11[y_train_11_5 == i])
@@ -152,7 +155,9 @@ def main(use_smote, max_iter=1000, jump_1_11=False):
         print(f"Training and evaluating model for category {category}")
 
         x_train_11_i, y_train_11_i = datasets[category]
-        x_train_11_i_resampled, y_train_11_i_resampled = apply_smote(x_train_11_i, y_train_11_i)
+        x_train_11_i_resampled, y_train_11_i_resampled = apply_smote( # type: ignore
+            x_train_11_i, y_train_11_i
+        )
 
         # Train the model
         models[category].fit(x_train_11_i_resampled, y_train_11_i_resampled)
@@ -172,8 +177,8 @@ def main(use_smote, max_iter=1000, jump_1_11=False):
         y_5 = y_pred_val_5[i]
         if y_5 != 0:
             y_pred_val_11[i] = models[y_5].predict(X_val_11[i].reshape(1, -1))
-    test_accuracy_11 = accuracy_score(y_val_11, y_pred_val_11)
-    test_f1_11 = f1_score(y_val_11, y_pred_val_11, average="macro")
+    val_accuracy_11 = accuracy_score(y_val_11, y_pred_val_11)
+    val_f1_11 = f1_score(y_val_11, y_pred_val_11, average="macro")
 
     # Print overall evaluation for 11-way model
     print(f"\n{'11-way'} classification model evaluation on Validation Set:")
@@ -212,5 +217,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Run the main function with the specified SMOTE option
-    trained_models = main(args.use_smote, args.max_iter, args.jump_1_11)
+    main(args.use_smote, args.max_iter, args.jump_1_11)
     print("\nTraining and evaluation completed for all tasks.")
