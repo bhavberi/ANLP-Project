@@ -292,7 +292,7 @@ def evaluate_model(model, data_loader, device):
     return avg_loss, accuracy, f1, precision, recall
 
 
-def main(num_epochs=5, model="bert-tiny"):
+def main(num_epochs=5, model_type="bert-tiny"):
     # Process data
     csv_path = "edos_labelled_aggregated.csv"
     datasets, _, _ = process_data(csv_path, vectorize=False)
@@ -324,10 +324,10 @@ def main(num_epochs=5, model="bert-tiny"):
         # Initialize the model
         print("Creating model")
         n_classes = len(np.unique(train_labels))
-        model = TransformerClassifier(n_classes=n_classes, model=model).to(device)
+        model = TransformerClassifier(n_classes=n_classes, model=model_type).to(device)
         optimizer = optim.AdamW(model.parameters(), lr=2e-5)
 
-        save_path = f"best_model_{task}_{model}.pth"
+        save_path = f"best_model_{task}_{model_type}.pth"
 
         # Train the model
         train_model(
