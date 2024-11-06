@@ -39,11 +39,10 @@ def evaluate_model(model, data_loader, device, initial, skip_0=False):
             outputs = model(input_ids, attention_mask, labels=labels)
             loss = outputs.loss
             logits = outputs.logits
-
             total_loss += loss.item()
-            _, preds = torch.max(logits)
+            _, preds = torch.max(logits, dim=1)
             # all_preds.extend(preds.cpu().tolist())
-            all_true.extend(labels.cpu().tolist()[0])
+            all_true.extend(labels.cpu())
             all_preds[index] = preds.cpu().tolist()[0]
             index += 1
 
@@ -60,7 +59,7 @@ def evaluate_model(model, data_loader, device, initial, skip_0=False):
 def main(max_iter=5, jump_1_11=False, model="bert-tiny"):
     # Process data
     csv_path = "edos_labelled_aggregated.csv"
-    datasets, _, _ = process_data(csv_path, use_smote=False, vectorize=False)
+    datasets, _, vector_mapping = process_data(csv_path, use_smote=False, vectorize=False)
 
     device = setup()
 

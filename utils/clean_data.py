@@ -24,7 +24,7 @@ def clean_text(df):
     for counter, (sentence, label_sexist, label_category, label_vector, split) in enumerate(tqdm(data)):
         # Clean and preprocess the text
         sentence = sentence.strip().lower()
-        sentence = re.sub('https?://[^\s<>"]+|www\.[^\s<>"]+', '', sentence)  # Remove URLs
+        sentence = re.sub(r'https?://[^\s<>"]+|www\.[^\s<>"]+', '', sentence)  # Remove URLs
         sentence = re.sub(r'\[(URL|USER)\]', '', sentence)  # Remove [URL] and [USER] tags
         tokenized_words = word_tokenize(sentence)
         tokenized_words = [re.sub(r'[^a-z0-9]', '', word) for word in tokenized_words if word]  # Keep only alphanumeric characters
@@ -114,7 +114,7 @@ def process_data(csv_path, use_smote=True, vectorize=True):
             
             # Apply SMOTE for handling class imbalance if use_smote is True
             if use_smote:
-                train_texts_resampled, train_labels_resampled = apply_smote(train_texts_vectorized, train_labels)
+                train_texts_resampled, train_labels_resampled = apply_smote(train_texts_vectorized, train_labels) # type: ignore
             else:
                 train_texts_resampled, train_labels_resampled = train_texts_vectorized, train_labels
         else:
