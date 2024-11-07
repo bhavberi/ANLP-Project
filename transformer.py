@@ -11,12 +11,12 @@ from torch.utils.data import Dataset, DataLoader
 from peft import get_peft_model, LoraConfig, TaskType
 from transformers import (
     BertTokenizer,
-    BertModel,
     BertForSequenceClassification,
     RobertaForSequenceClassification,
     DistilBertForSequenceClassification,
     AlbertForSequenceClassification,
 )
+from sklearn.utils.class_weight import compute_class_weight
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 
 from utils.clean_data import process_data
@@ -89,6 +89,12 @@ class SentenceDataset(Dataset):
 
         return encodings
 
+    def get_class_weights(self):
+        class_weights = compute_class_weight(
+            "balanced", classes=np.unique(self.labels), y=self.labels
+        )
+        return class_weights
+
     def __len__(self):
         return len(self.texts)
 
@@ -104,7 +110,7 @@ class SentenceDataset(Dataset):
 
 
 class TransformerClassifier(nn.Module):
-    def __init__(self, n_classes=1, model="bert-tiny", LoRA=False):
+    def __init__(self, n_classes=1, model="bert-tiny", LoRA=False, class_weights=None):
         super(TransformerClassifier, self).__init__()
 
         assert model in models.keys(), f"Model {model} not found in available models."
@@ -129,6 +135,12 @@ class TransformerClassifier(nn.Module):
         if LoRA:
             self._apply_lora()
 
+        if class_weights is not None:
+            class_weights_tensor = torch.tensor(class_weights, dtype=torch.float)
+            self.criterion = nn.CrossEntropyLoss(weight=class_weights_tensor)
+        else:
+            self.criterion = nn.CrossEntropyLoss()
+
     def _apply_lora(self):
         # LoRA configuration for PEFT
         peft_config = LoraConfig(
@@ -140,42 +152,18 @@ class TransformerClassifier(nn.Module):
         )
 
         # Apply LoRA to the sequence classification model
-        self.transformer = get_peft_model(self.transformer, peft_config)
+        self.transformer = get_peft_model(self.transformer, peft_config)  # type: ignore
 
     def forward(self, input_ids, attention_mask, labels=None):
         # Forward pass through LoRA-adapted BERTForSequenceClassification
         outputs = self.transformer(
             input_ids=input_ids, attention_mask=attention_mask, labels=labels
         )
+
+        logits = outputs.logits
+        loss = self.criterion(logits, labels) if labels is not None else None
+        outputs.loss = loss
         return outputs
-
-
-class TransformerClassifierOld(nn.Module):
-    def __init__(self, n_classes=1, dropout=0.3, hidden_size=128, model="bert-tiny"):
-        super(TransformerClassifierOld, self).__init__()
-        self.transformer = BertModel.from_pretrained(models[model])
-        self.layer_norm = nn.LayerNorm(self.transformer.config.hidden_size)
-
-        self.classifier = nn.Sequential(
-            nn.Linear(self.transformer.config.hidden_size, hidden_size),
-            nn.ReLU(),
-            nn.Dropout(dropout),
-            nn.Linear(hidden_size, n_classes),
-        )
-
-    def forward(self, input_ids, attention_mask):
-        # Pass input through BERT
-        _, pooled_output = self.transformer(
-            input_ids=input_ids, attention_mask=attention_mask, return_dict=False
-        )
-
-        # Apply layer normalization
-        pooled_output = self.layer_norm(pooled_output)
-
-        # Pass through the classifier
-        output = self.classifier(pooled_output)
-
-        return output
 
 
 def train_model(
@@ -316,6 +304,8 @@ def main(num_epochs=5, model_type="bert-tiny"):
         val_dataset = SentenceDataset(val_texts, val_labels, tokenizer)
         test_dataset = SentenceDataset(test_texts, test_labels, tokenizer)
 
+        class_weights = train_dataset.get_class_weights()
+
         # Create data loaders
         train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
         val_loader = DataLoader(val_dataset, batch_size=64)
@@ -324,7 +314,9 @@ def main(num_epochs=5, model_type="bert-tiny"):
         # Initialize the model
         print("Creating model")
         n_classes = len(np.unique(train_labels))
-        model = TransformerClassifier(n_classes=n_classes, model=model_type).to(device)
+        model = TransformerClassifier(
+            n_classes=n_classes, model=model_type, class_weights=class_weights
+        ).to(device)
         optimizer = optim.AdamW(model.parameters(), lr=2e-5)
 
         save_path = f"best_model_{task}_{model_type}.pth"
