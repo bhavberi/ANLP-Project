@@ -3,33 +3,33 @@ Training and evaluating binary classification model
 SMOTE applied: False
 
 Binary classification model evaluation on Validation Set:
-Validation accuracy: 0.8000
-Validation F1 score: 0.7308
+Validation accuracy: 0.7950
+Validation F1 score: 0.7241
 
 Binary classification model evaluation on Test Set:
-Test accuracy: 0.8077
-Test F1 score: 0.7468
+Test accuracy: 0.8060
+Test F1 score: 0.7449
 
 Training and evaluating 5-way classification model
 SMOTE applied: False
 
 5-way classification model evaluation on Validation Set:
-Validation accuracy: 0.7395
-Validation F1 score: 0.3999
+Validation accuracy: 0.8905
+Validation F1 score: 0.6163
 
 5-way classification model evaluation on Test Set:
-Test accuracy: 0.7328
-Test F1 score: 0.4045
+Test accuracy: 0.8810
+Test F1 score: 0.5804
 
 Training and evaluating 11-way classification model from 1
 SMOTE applied: False
 
 11-way classification model evaluation on Validation Set:
-Validation accuracy: 0.7190
-Validation F1 score: 0.2126
+Validation accuracy: 0.8580
+Validation F1 score: 0.3413
 
 11-way classification model evaluation on Test Set:
-Test accuracy: 0.7115
-Test F1 score: 0.2253
+Test accuracy: 0.8475
+Test F1 score: 0.3332
 
 Training and evaluation completed for all tasks.

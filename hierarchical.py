@@ -67,14 +67,14 @@ def main(use_smote, max_iter=1000, jump_1_11=False):
     y_pred_5 = y_pred_b.copy()
     for i in range(len(y_test_5)):
         if y_pred_5[i] != 0:
-            y_pred_5[i] = model_5.predict(x_test_5[i].reshape(1, -1))
+            y_pred_5[i] = model_5.predict(x_test_5[i].reshape(1, -1))[0]
     test_accuracy_5 = accuracy_score(y_test_5, y_pred_5)
     test_f1_5 = f1_score(y_test_5, y_pred_5, average="macro")
 
     y_pred_val_5 = y_pred_val_b.copy()
     for i in range(len(y_val_5)):
         if y_pred_val_5[i] != 0:
-            y_pred_val_5[i] = model_5.predict(X_val_5[i].reshape(1, -1))
+            y_pred_val_5[i] = model_5.predict(X_val_5[i].reshape(1, -1))[0]
     val_accuracy_5 = accuracy_score(y_val_5, y_pred_val_5)
     val_f1_5 = f1_score(y_val_5, y_pred_val_5, average="macro")
 
@@ -107,14 +107,14 @@ def main(use_smote, max_iter=1000, jump_1_11=False):
         y_pred_11 = y_pred_b.copy()
         for i in range(len(y_test_11)):
             if y_pred_11[i] != 0:
-                y_pred_11[i] = model_11.predict(x_test_11[i].reshape(1, -1))
+                y_pred_11[i] = model_11.predict(x_test_11[i].reshape(1, -1))[0]
         test_accuracy_11 = accuracy_score(y_test_11, y_pred_11)
         test_f1_11 = f1_score(y_test_11, y_pred_11, average="macro")
 
         y_pred_val_11 = y_pred_val_b.copy()
         for i in range(len(y_val_11)):
             if y_pred_val_11[i] != 0:
-                y_pred_val_11[i] = model_11.predict(X_val_11[i].reshape(1, -1))
+                y_pred_val_11[i] = model_11.predict(X_val_11[i].reshape(1, -1))[0]
         val_accuracy_11 = accuracy_score(y_val_11, y_pred_val_11)
         val_f1_11 = f1_score(y_val_11, y_pred_val_11, average="macro")
 
