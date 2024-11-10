@@ -33,6 +33,8 @@ models = {
     "distilbert-base": "distilbert-base-uncased",
     "albert-base": "albert-base-v2",
     "albert-large": "albert-large-v2",
+    "xlm-roberta-base": "FacebookAI/xlm-roberta-base",
+    "bert-base-multilingual": "google-bert/bert-base-multilingual-uncased"
 }
 
 
