@@ -115,23 +115,21 @@ class TransformerClassifier(nn.Module):
     def __init__(self, n_classes=1, model="bert-tiny", LoRA=False, class_weights=None):
         super(TransformerClassifier, self).__init__()
 
-        assert model in models.keys(), f"Model {model} not found in available models."
-
         if model.split("-")[0] == "bert":
             self.transformer = BertForSequenceClassification.from_pretrained(
-                models[model], num_labels=n_classes
+                model, num_labels=n_classes
             )
         elif model.split("-")[0] == "roberta":
             self.transformer = RobertaForSequenceClassification.from_pretrained(
-                models[model], num_labels=n_classes
+                model, num_labels=n_classes
             )
         elif model.split("-")[0] == "distilbert":
             self.transformer = DistilBertForSequenceClassification.from_pretrained(
-                models[model], num_labels=n_classes
+                model, num_labels=n_classes
             )
         elif model.split("-")[0] == "albert":
             self.transformer = AlbertForSequenceClassification.from_pretrained(
-                models[model], num_labels=n_classes
+                model, num_labels=n_classes
             )
 
         if LoRA:
@@ -289,8 +287,13 @@ def main(num_epochs=5, model_type="bert-tiny"):
 
     device = setup()
 
-    assert model_type in models.keys(), f"Model {model_type} not found in available models."
-    tokenizer = AutoTokenizer.from_pretrained(models[model_type], do_lower_case=True)
+    # assert model_type in models.keys(), f"Model {model_type} not found in available models."
+    if model_type in models.keys():
+        model_type = models[model_type]
+    else:
+        print(f"Model {model_type} not found in available models. Using {model_type} as model.")
+
+    tokenizer = AutoTokenizer.from_pretrained(model_type, do_lower_case=True)
 
     # Train and evaluate models for each task
     for task in ["binary", "5-way", "11-way"]:
