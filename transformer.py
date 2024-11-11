@@ -381,8 +381,7 @@ if __name__ == "__main__":
         "--model",
         type=str,
         default="bert-tiny",
-        choices=models.keys(),
-        help="Model to use for training (default: bert-tiny)",
+        help=f"Model to use for training (default: bert-tiny). Choices: {models.keys()}",
     )
     args = parser.parse_args()
 
