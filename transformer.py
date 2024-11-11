@@ -34,7 +34,7 @@ models = {
     "albert-base": "albert-base-v2",
     "albert-large": "albert-large-v2",
     "xlm-roberta-base": "FacebookAI/xlm-roberta-base",
-    "bert-base-multilingual": "google-bert/bert-base-multilingual-cased"
+    "bert-base-multilingual": "google-bert/bert-base-multilingual-cased",
 }
 
 
@@ -294,7 +294,6 @@ def main(num_epochs=5, model_type="bert-tiny"):
     # Train and evaluate models for each task
     for task in ["binary", "5-way", "11-way"]:
         print(f"\nTraining and evaluating {task} classification model")
-        print(f"SMOTE applied: {datasets[task]['smote_applied']}")
 
         # Prepare datasets
         train_texts, train_labels = datasets[task]["train"]
