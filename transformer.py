@@ -10,7 +10,7 @@ from scipy.sparse import issparse
 from torch.utils.data import Dataset, DataLoader
 from peft import get_peft_model, LoraConfig, TaskType
 from transformers import (
-    BertTokenizer,
+    AutoTokenizer,
     BertForSequenceClassification,
     RobertaForSequenceClassification,
     DistilBertForSequenceClassification,
@@ -289,7 +289,8 @@ def main(num_epochs=5, model_type="bert-tiny"):
 
     device = setup()
 
-    tokenizer = BertTokenizer.from_pretrained("bert-base-uncased", do_lower_case=True)
+    assert model_type in models.keys(), f"Model {model_type} not found in available models."
+    tokenizer = AutoTokenizer.from_pretrained(models[model_type], do_lower_case=True)
 
     # Train and evaluate models for each task
     for task in ["binary", "5-way", "11-way"]:
