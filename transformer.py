@@ -113,15 +113,30 @@ class SentenceDataset(Dataset):
 
 
 class TransformerClassifier(nn.Module):
-    def __init__(self, n_classes=1, model="bert-tiny", LoRA=False, class_weights=None):
+    def __init__(
+        self,
+        n_classes=1,
+        model="bert-tiny",
+        LoRA=False,
+        class_weights=None,
+        freeze=False,
+    ):
         super(TransformerClassifier, self).__init__()
+
+        assert n_classes > 1, "Number of classes must be greater than 1."
+        assert not (LoRA and freeze), "LoRA and freeze cannot be applied together."
 
         self.transformer = AutoModelForSequenceClassification.from_pretrained(
             model, num_labels=n_classes
         )
 
         if LoRA:
+            print("Applying LoRA to the model")
             self._apply_lora()
+        elif freeze:
+            print("Freezing the transformer model")
+            for param in self.transformer.parameters():
+                param.requires_grad = False
 
         if class_weights is not None:
             class_weights_tensor = torch.tensor(class_weights, dtype=torch.float)
@@ -268,7 +283,7 @@ def evaluate_model(model, data_loader, device):
     return avg_loss, accuracy, f1, precision, recall
 
 
-def main(num_epochs=5, model_type="bert-tiny"):
+def main(num_epochs=5, model_type="bert-tiny", apply_lora=False, freeze=False):
     print("\n\n")
     device = setup()
 
@@ -312,7 +327,11 @@ def main(num_epochs=5, model_type="bert-tiny"):
         print("Creating model")
         n_classes = len(np.unique(train_labels))
         model = TransformerClassifier(
-            n_classes=n_classes, model=model_type, class_weights=class_weights
+            n_classes=n_classes,
+            model=model_type,
+            class_weights=class_weights,
+            LoRA=apply_lora,
+            freeze=freeze,
         ).to(device)
         optimizer = optim.AdamW(model.parameters(), lr=2e-5)
 
@@ -367,6 +386,16 @@ if __name__ == "__main__":
         default="bert-tiny",
         help=f"Model to use for training (default: bert-tiny). Choices: {models.keys()}",
     )
+    parser.add_argument(
+        "--lora",
+        action="store_true",
+        help="Apply LoRA to the model for training",
+    )
+    parser.add_argument(
+        "--freeze",
+        action="store_true",
+        help="Freeze the transformer model during training",
+    )
     args = parser.parse_args()
 
-    main(args.num_epochs, args.model)
+    main(args.num_epochs, args.model, args.lora, args.freeze)
