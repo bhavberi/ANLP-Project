@@ -134,9 +134,10 @@ class TransformerClassifier(nn.Module):
             print("Applying LoRA to the model")
             self._apply_lora()
         elif freeze:
-            print("Freezing the transformer model")
-            for param in self.transformer.parameters():
-                param.requires_grad = False
+            print("Freezing the non-classification layers")
+            for name, param in self.transformer.named_parameters():
+                if "classifier" not in name:
+                    param.requires_grad = False
 
         if class_weights is not None:
             class_weights_tensor = torch.tensor(class_weights, dtype=torch.float)
