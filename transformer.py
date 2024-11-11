@@ -1,3 +1,4 @@
+import os
 import random
 import argparse
 import numpy as np
@@ -54,6 +55,9 @@ def setup():
         else "cpu"
     )
     print(f"Using device: {device}")
+
+    os.makedirs("models", exist_ok=True)
+
     return device
 
 
@@ -291,7 +295,9 @@ def main(num_epochs=5, model_type="bert-tiny"):
     if model_type in models.keys():
         model_type = models[model_type]
     else:
-        print(f"Model {model_type} not found in available models. Using {model_type} as model.")
+        print(
+            f"Model {model_type} not found in available models. Using {model_type} as model."
+        )
 
     tokenizer = AutoTokenizer.from_pretrained(model_type, do_lower_case=True)
 
@@ -324,7 +330,7 @@ def main(num_epochs=5, model_type="bert-tiny"):
         ).to(device)
         optimizer = optim.AdamW(model.parameters(), lr=2e-5)
 
-        save_path = f"best_model_{task}_{model_type}.pth"
+        save_path = f"models/best_model_{task}_{model_type}.pth"
 
         # Train the model
         train_model(
