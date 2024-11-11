@@ -12,10 +12,7 @@ from torch.utils.data import Dataset, DataLoader
 from peft import get_peft_model, LoraConfig, TaskType
 from transformers import (
     AutoTokenizer,
-    BertForSequenceClassification,
-    RobertaForSequenceClassification,
-    DistilBertForSequenceClassification,
-    AlbertForSequenceClassification,
+    AutoModelForSequenceClassification,
 )
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
@@ -119,22 +116,9 @@ class TransformerClassifier(nn.Module):
     def __init__(self, n_classes=1, model="bert-tiny", LoRA=False, class_weights=None):
         super(TransformerClassifier, self).__init__()
 
-        if model.split("-")[0] == "bert":
-            self.transformer = BertForSequenceClassification.from_pretrained(
-                model, num_labels=n_classes
-            )
-        elif model.split("-")[0] == "roberta":
-            self.transformer = RobertaForSequenceClassification.from_pretrained(
-                model, num_labels=n_classes
-            )
-        elif model.split("-")[0] == "distilbert":
-            self.transformer = DistilBertForSequenceClassification.from_pretrained(
-                model, num_labels=n_classes
-            )
-        elif model.split("-")[0] == "albert":
-            self.transformer = AlbertForSequenceClassification.from_pretrained(
-                model, num_labels=n_classes
-            )
+        self.transformer = AutoModelForSequenceClassification.from_pretrained(
+            model, num_labels=n_classes
+        )
 
         if LoRA:
             self._apply_lora()
@@ -331,7 +315,7 @@ def main(num_epochs=5, model_type="bert-tiny"):
             n_classes=n_classes, model=model_type, class_weights=class_weights
         ).to(device)
         optimizer = optim.AdamW(model.parameters(), lr=2e-5)
-        
+
         save_path = f"models/best_model_{task}_{model_type}.pth"
         if "/" in model_type:
             save_path = f"models/best_model_{task}_{model_type.split('/')[-1]}.pth"
