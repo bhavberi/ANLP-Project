@@ -285,10 +285,7 @@ def evaluate_model(model, data_loader, device):
 
 
 def main(num_epochs=5, model_type="bert-tiny"):
-    # Process data
-    csv_path = "edos_labelled_aggregated.csv"
-    datasets, _, _ = process_data(csv_path, vectorize=False)
-
+    print("\n\n")
     device = setup()
 
     # assert model_type in models.keys(), f"Model {model_type} not found in available models."
@@ -296,8 +293,13 @@ def main(num_epochs=5, model_type="bert-tiny"):
         model_type = models[model_type]
     else:
         print(
-            f"Model {model_type} not found in available models. Using {model_type} as model."
+            f"Model {model_type} not found in available models. Using {model_type} directly as model."
         )
+    print(f"Using model: {model_type}")
+
+    # Process data
+    csv_path = "edos_labelled_aggregated.csv"
+    datasets, _, _ = process_data(csv_path, vectorize=False)
 
     tokenizer = AutoTokenizer.from_pretrained(model_type, do_lower_case=True)
 
@@ -329,8 +331,10 @@ def main(num_epochs=5, model_type="bert-tiny"):
             n_classes=n_classes, model=model_type, class_weights=class_weights
         ).to(device)
         optimizer = optim.AdamW(model.parameters(), lr=2e-5)
-
+        
         save_path = f"models/best_model_{task}_{model_type}.pth"
+        if "/" in model_type:
+            save_path = f"models/best_model_{task}_{model_type.split('/')[-1]}.pth"
 
         # Train the model
         train_model(
