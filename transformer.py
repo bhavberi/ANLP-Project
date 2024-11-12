@@ -284,7 +284,14 @@ def evaluate_model(model, data_loader, device):
     return avg_loss, accuracy, f1, precision, recall
 
 
-def main(num_epochs=5, model_type="bert-tiny", apply_lora=False, freeze=False, only_test=False):
+def main(
+    num_epochs=5,
+    model_type="bert-tiny",
+    apply_lora=False,
+    freeze=False,
+    only_test=False,
+    csv_path="edos_labelled_aggregated.csv",
+):
     print("\n\n")
     device = setup()
 
@@ -298,7 +305,6 @@ def main(num_epochs=5, model_type="bert-tiny", apply_lora=False, freeze=False, o
     print(f"Using model: {model_type}")
 
     # Process data
-    csv_path = "edos_labelled_aggregated.csv"
     datasets, _, _ = process_data(csv_path, vectorize=False)
 
     tokenizer = AutoTokenizer.from_pretrained(model_type, do_lower_case=True)
@@ -403,6 +409,20 @@ if __name__ == "__main__":
         action="store_true",
         help="Run the model only for testing",
     )
+    parser.add_argument(
+        "--csv_path",
+        type=str,
+        default="edos_labelled_aggregated.csv",
+        help="Path to the CSV file containing the data (default: edos_labelled_aggregated.csv)",
+    )
     args = parser.parse_args()
 
-    main(args.num_epochs, args.model, args.lora, args.freeze, args.test)
+    main(
+        num_epochs=args.num_epochs,
+        model_type=args.model,
+        apply_lora=args.lora,
+        freeze=args.freeze,
+        only_test=args.test,
+        csv_path=args.csv_path,
+    )
+
