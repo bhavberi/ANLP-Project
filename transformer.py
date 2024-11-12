@@ -284,7 +284,7 @@ def evaluate_model(model, data_loader, device):
     return avg_loss, accuracy, f1, precision, recall
 
 
-def main(num_epochs=5, model_type="bert-tiny", apply_lora=False, freeze=False):
+def main(num_epochs=5, model_type="bert-tiny", apply_lora=False, freeze=False, only_test=False):
     print("\n\n")
     device = setup()
 
@@ -341,16 +341,17 @@ def main(num_epochs=5, model_type="bert-tiny", apply_lora=False, freeze=False):
             save_path = f"models/best_model_{task}_{model_type.split('/')[-1]}.pth"
 
         # Train the model
-        train_model(
-            model,
-            train_loader,
-            val_loader,
-            optimizer,
-            device,
-            task,
-            num_epochs=num_epochs,
-            save_path=save_path,
-        )
+        if not only_test:
+            train_model(
+                model,
+                train_loader,
+                val_loader,
+                optimizer,
+                device,
+                task,
+                num_epochs=num_epochs,
+                save_path=save_path,
+            )
 
         # Load the best model
         model.load_state_dict(
@@ -397,6 +398,11 @@ if __name__ == "__main__":
         action="store_true",
         help="Freeze the transformer model during training",
     )
+    parser.add_argument(
+        "--test",
+        action="store_true",
+        help="Run the model only for testing",
+    )
     args = parser.parse_args()
 
-    main(args.num_epochs, args.model, args.lora, args.freeze)
+    main(args.num_epochs, args.model, args.lora, args.freeze, args.test)
