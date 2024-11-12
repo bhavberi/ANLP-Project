@@ -14,14 +14,14 @@ nltk.download("punkt", quiet=True, download_dir="./nltk_data/")
 nltk.data.path.append("./nltk_data/")
 
 
-def clean_text(df):
+def clean_text(df, translated_text=False):
     """
     Clean and preprocess text data from a DataFrame.
     """
     lemmatizer = WordNetLemmatizer()
     data = list(
         zip(
-            df["text"],
+            df["text"] if not translated_text else df["translated_text"],
             df["label_sexist"],
             df["label_category"],
             df["label_vector"],
@@ -125,14 +125,14 @@ def apply_smote(data, labels):
     return smote.fit_resample(data, labels)
 
 
-def process_data(csv_path, use_smote=True, vectorize=True):
+def process_data(csv_path, use_smote=True, vectorize=True, translated_text=False):
     """
     Main function to process data for all classification tasks.
     """
     # Load and preprocess data
     df = pd.read_csv(csv_path)
     category_mapping, vector_mapping = create_label_mappings(df)
-    train_data, val_data, test_data = clean_text(df)
+    train_data, val_data, test_data = clean_text(df, translated_text)
 
     # Prepare datasets for each classification task
     tasks = ["binary", "5-way", "11-way"]
