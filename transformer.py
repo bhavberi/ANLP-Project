@@ -291,6 +291,7 @@ def main(
     freeze=False,
     only_test=False,
     csv_path="edos_labelled_aggregated.csv",
+    translated_text=False,
 ):
     print("\n\n")
     device = setup()
@@ -305,7 +306,9 @@ def main(
     print(f"Using model: {model_type}")
 
     # Process data
-    datasets, _, _ = process_data(csv_path, vectorize=False)
+    datasets, _, _ = process_data(
+        csv_path, vectorize=False, translated_text=translated_text
+    )
 
     tokenizer = AutoTokenizer.from_pretrained(model_type, do_lower_case=True)
 
@@ -415,6 +418,11 @@ if __name__ == "__main__":
         default="edos_labelled_aggregated.csv",
         help="Path to the CSV file containing the data (default: edos_labelled_aggregated.csv)",
     )
+    parser.add_argument(
+        "--translated_text",
+        action="store_true",
+        help="Use translated text for training",
+    )
     args = parser.parse_args()
 
     main(
@@ -424,5 +432,5 @@ if __name__ == "__main__":
         freeze=args.freeze,
         only_test=args.test,
         csv_path=args.csv_path,
+        translated_text=args.translated_text,
     )
-
