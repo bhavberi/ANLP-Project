@@ -294,7 +294,6 @@ def main(
     translated_text=False,
     save_path_suffix="",
 ):
-    print("\n\n")
     device = setup()
 
     # assert model_type in models.keys(), f"Model {model_type} not found in available models."
@@ -434,6 +433,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    print("\n\n")
     print("Arguments:", args)
 
     main(
