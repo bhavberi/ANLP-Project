@@ -349,7 +349,7 @@ def main(
         save_path = f"models/best_model_{task}_{model_type}"
         if "/" in model_type:
             save_path = f"models/best_model_{task}_{model_type.split('/')[-1]}"
-        save_path += save_path_suffix + ".pt"
+        save_path += save_path_suffix + ".pth"
         print(f"Model will be saved at: {save_path}")
 
         # Train the model
