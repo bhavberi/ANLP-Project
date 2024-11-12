@@ -350,6 +350,7 @@ def main(
         if "/" in model_type:
             save_path = f"models/best_model_{task}_{model_type.split('/')[-1]}"
         save_path += save_path_suffix + ".pt"
+        print(f"Model will be saved at: {save_path}")
 
         # Train the model
         if not only_test:
@@ -432,6 +433,8 @@ if __name__ == "__main__":
         help="Suffix to add to the model save path (default: '')",
     )
     args = parser.parse_args()
+
+    print("Arguments:", args)
 
     main(
         num_epochs=args.num_epochs,
