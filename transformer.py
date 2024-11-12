@@ -292,6 +292,7 @@ def main(
     only_test=False,
     csv_path="edos_labelled_aggregated.csv",
     translated_text=False,
+    save_path_suffix="",
 ):
     print("\n\n")
     device = setup()
@@ -345,9 +346,10 @@ def main(
         ).to(device)
         optimizer = optim.AdamW(model.parameters(), lr=2e-5)
 
-        save_path = f"models/best_model_{task}_{model_type}.pth"
+        save_path = f"models/best_model_{task}_{model_type}"
         if "/" in model_type:
-            save_path = f"models/best_model_{task}_{model_type.split('/')[-1]}.pth"
+            save_path = f"models/best_model_{task}_{model_type.split('/')[-1]}"
+        save_path += save_path_suffix + ".pt"
 
         # Train the model
         if not only_test:
@@ -423,6 +425,12 @@ if __name__ == "__main__":
         action="store_true",
         help="Use translated text for training",
     )
+    parser.add_argument(
+        "--save_path_suffix",
+        type=str,
+        default="",
+        help="Suffix to add to the model save path (default: '')",
+    )
     args = parser.parse_args()
 
     main(
@@ -433,4 +441,5 @@ if __name__ == "__main__":
         only_test=args.test,
         csv_path=args.csv_path,
         translated_text=args.translated_text,
+        save_path_suffix=args.save_path_suffix,
     )
