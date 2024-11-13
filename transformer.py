@@ -293,6 +293,7 @@ def main(
     csv_path="edos_labelled_aggregated.csv",
     translated_text=False,
     save_path_suffix="",
+    translated_and_normal=False,
 ):
     device = setup()
 
@@ -307,7 +308,10 @@ def main(
 
     # Process data
     datasets, _, _ = process_data(
-        csv_path, vectorize=False, translated_text=translated_text
+        csv_path,
+        vectorize=False,
+        translated_text=translated_text,
+        use_normal_translated_both=translated_and_normal,
     )
 
     tokenizer = AutoTokenizer.from_pretrained(model_type, do_lower_case=True)
@@ -426,6 +430,11 @@ if __name__ == "__main__":
         help="Use translated text for training",
     )
     parser.add_argument(
+        "--translated_and_normal",
+        action="store_true",
+        help="Use both translated and normal text for training",
+    )
+    parser.add_argument(
         "--save_path_suffix",
         type=str,
         default="",
@@ -445,4 +454,5 @@ if __name__ == "__main__":
         csv_path=args.csv_path,
         translated_text=args.translated_text,
         save_path_suffix=args.save_path_suffix,
+        translated_and_normal=args.translated_and_normal,
     )
