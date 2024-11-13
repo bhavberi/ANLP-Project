@@ -266,7 +266,7 @@ def main(
         use_normal_translated_both=translated_and_normal,
     )
 
-    # Load tokenizer for Mamba models (use GPT-NeoX tokenizer)
+    # Load tokenizer for Mamba models
     tokenizer = AutoTokenizer.from_pretrained(model_name)
 
     # Train and evaluate models for each task
