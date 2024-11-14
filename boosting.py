@@ -242,7 +242,7 @@ def train_model(
                 _, preds = torch.max(logits, dim=1)
                 val_preds.extend(preds.cpu().tolist())
                 val_true.extend(labels.cpu().tolist())
-            
+
         # Calculate and print metrics
         train_loss /= len(train_loader)
         val_loss /= len(val_loader)
@@ -266,7 +266,7 @@ def train_model(
                 torch.save(model.state_dict(), save_path)
             print(f"Saved best model for {task} classification.")
             new_losses = []
-        
+
     model.eval()
     with torch.no_grad():
         for batch in tqdm(
@@ -279,8 +279,8 @@ def train_model(
             # Forward pass during evaluation
             outputs = model(input_ids, attention_mask, labels=labels)
             loss = outputs.loss  # Validation loss computed by the model
-            new_losses.append(1 + 10*loss.item())
- 
+            new_losses.append(1 + 10 * loss.item())
+
     return new_losses
 
 
@@ -309,15 +309,21 @@ def evaluate_model(ensemble_models, data_loader, device, voting="soft"):
                 ensemble_preds.append(pred)
 
             # Stack predictions for voting
-            ensemble_preds = torch.stack(ensemble_preds, dim=0)  # Shape: (num_models, batch_size)
+            ensemble_preds = torch.stack(
+                ensemble_preds, dim=0
+            )  # Shape: (num_models, batch_size)
 
             # Voting
             if voting == "hard":
                 preds = torch.mode(ensemble_preds, dim=0).values  # Majority voting
             elif voting == "soft":
                 # Average logits across models and then get predictions
-                avg_logits = torch.mean(torch.stack([outputs.logits for outputs in outputs_list]), dim=0)  # (batch_size, num_classes)
-                _, preds = torch.max(avg_logits, dim=1)  # Take the max after averaging logits
+                avg_logits = torch.mean(
+                    torch.stack([outputs.logits for outputs in outputs_list]), dim=0
+                )  # (batch_size, num_classes)
+                _, preds = torch.max(
+                    avg_logits, dim=1
+                )  # Take the max after averaging logits
             total_loss += loss
             all_preds.extend(preds.cpu().tolist())
             all_true.extend(labels.cpu().tolist())
@@ -332,7 +338,9 @@ def evaluate_model(ensemble_models, data_loader, device, voting="soft"):
     return avg_loss, accuracy, f1, precision, recall
 
 
-def main(num_epochs=5, model_type="bert-tiny", apply_lora=False, freeze=False, num_ensemble=5):
+def main(
+    num_epochs=5, model_type="bert-tiny", apply_lora=False, freeze=False, num_ensemble=5
+):
     print("\n\n")
     device = setup()
 
@@ -350,7 +358,7 @@ def main(num_epochs=5, model_type="bert-tiny", apply_lora=False, freeze=False, n
     datasets, _, _ = process_data(csv_path, vectorize=False)
 
     tokenizer = AutoTokenizer.from_pretrained(model_type, do_lower_case=True)
-    
+
     # Train and evaluate models for each task
     for task in ["binary", "5-way", "11-way"]:
         print(f"\nTraining and evaluating {task} classification model")
@@ -362,17 +370,18 @@ def main(num_epochs=5, model_type="bert-tiny", apply_lora=False, freeze=False, n
         test_dataset = SentenceDataset(test_texts, test_labels, tokenizer)
         test_loader = DataLoader(test_dataset, batch_size=64)
         prev_losses = None
+
+        print("Making datasets")
+        train_dataset = SentenceDataset(train_texts, train_labels, tokenizer)
+        val_dataset = SentenceDataset(val_texts, val_labels, tokenizer)
+
+        class_weights = train_dataset.get_class_weights()
+
+        # Create data loaders
+        train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=64)
+
         for i in range(num_ensemble):
-            print("Making datasets")            
-            train_dataset = SentenceDataset(train_texts, train_labels, tokenizer)
-            val_dataset = SentenceDataset(val_texts, val_labels, tokenizer)
-
-            class_weights = train_dataset.get_class_weights()
-
-            # Create data loaders
-            train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
-            val_loader = DataLoader(val_dataset, batch_size=64)
-
             # Initialize the model
             print("Creating model")
             n_classes = len(np.unique(train_labels))
@@ -387,7 +396,9 @@ def main(num_epochs=5, model_type="bert-tiny", apply_lora=False, freeze=False, n
 
             save_path = f"models/best_model_{task}_{model_type}_{i}.pth"
             if "/" in model_type:
-                save_path = f"models/best_model_{task}_{model_type.split('/')[-1]}_{i}.pth"
+                save_path = (
+                    f"models/best_model_{task}_{model_type.split('/')[-1]}_{i}.pth"
+                )
 
             # Train the model
             prev_losses = train_model(
@@ -420,7 +431,11 @@ def main(num_epochs=5, model_type="bert-tiny", apply_lora=False, freeze=False, n
         print(f"Macro F1 Score: {test_f1:.4f}")
         print(f"Macro Precision: {test_precision:.4f}")
         print(f"Macro Recall: {test_recall:.4f}")
-        with open(f"{task}_{model_type.split('/')[-1]}_results.txt", "w", ) as f:
+
+        with open(
+            f"{task}_{model_type.split('/')[-1]}_results.txt",
+            "w",
+        ) as f:
             f.write(f"Test Results for {task} classification:\n")
             f.write("Applying Boosting with Ensemble of Models\n")
             f.write(f"Loss: {test_loss:.4f}\n")
@@ -428,6 +443,7 @@ def main(num_epochs=5, model_type="bert-tiny", apply_lora=False, freeze=False, n
             f.write(f"Macro F1 Score: {test_f1:.4f}\n")
             f.write(f"Macro Precision: {test_precision:.4f}\n")
             f.write(f"Macro Recall: {test_recall:.4f}\n")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
