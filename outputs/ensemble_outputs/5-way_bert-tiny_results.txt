@@ -1,0 +1,7 @@
+Test Results for 5-way classification:
+Applying Boosting with Ensemble of Models
+Loss: 1.2410
+Accuracy: 0.7077
+Macro F1 Score: 0.4269
+Macro Precision: 0.4012
+Macro Recall: 0.4815
