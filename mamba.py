@@ -409,35 +409,35 @@ def main(
         for metric, value in test_metrics.items():
             print(f"{metric}: {value:.4f}")
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Train and evaluate Mamba models for text classification.")
-    parser.add_argument("--num_epochs", type=int, default=5, help="Number of epochs")
-    parser.add_argument("--model", type=str, default="mamba-tiny", choices=list(models.keys()))
-    parser.add_argument("--test", action="store_true", help="Run only testing")
-    parser.add_argument("--csv_path", type=str, default="edos_labelled_aggregated.csv")
-    parser.add_argument("--translated_text", action="store_true")
-    parser.add_argument("--translated_and_normal", action="store_true")
-    parser.add_argument("--save_path_suffix", type=str, default="")
+# if __name__ == "__main__":
+#     parser = argparse.ArgumentParser(description="Train and evaluate Mamba models for text classification.")
+#     parser.add_argument("--num_epochs", type=int, default=5, help="Number of epochs")
+#     parser.add_argument("--model", type=str, default="mamba-tiny", choices=list(models.keys()))
+#     parser.add_argument("--test", action="store_true", help="Run only testing")
+#     parser.add_argument("--csv_path", type=str, default="edos_labelled_aggregated.csv")
+#     parser.add_argument("--translated_text", action="store_true")
+#     parser.add_argument("--translated_and_normal", action="store_true")
+#     parser.add_argument("--save_path_suffix", type=str, default="")
     
-    args = parser.parse_args()
-    print("\nArguments:", args)
+#     args = parser.parse_args()
+#     print("\nArguments:", args)
     
-    main(
-        num_epochs=args.num_epochs,
-        model_type=args.model,
-        only_test=args.test,
-        csv_path=args.csv_path,
-        translated_text=args.translated_text,
-        save_path_suffix=args.save_path_suffix,
-        translated_and_normal=args.translated_and_normal,
-    )
+#     main(
+#         num_epochs=args.num_epochs,
+#         model_type=args.model,
+#         only_test=args.test,
+#         csv_path=args.csv_path,
+#         translated_text=args.translated_text,
+#         save_path_suffix=args.save_path_suffix,
+#         translated_and_normal=args.translated_and_normal,
+#     )
 
-# main(
-#     num_epochs=1,
-#     model_type="mamba-tiny",
-#     only_test=False,
-#     csv_path="/kaggle/input/explainable-detection-of-online-sexism-edos/edos_labelled_aggregated.csv",
-#     translated_text=False,
-#     save_path_suffix="",
-#     translated_and_normal=False,
-# )
+main(
+    num_epochs=1,
+    model_type="mamba-tiny",
+    only_test=False,
+    csv_path="edos_labelled_aggregated.csv",
+    translated_text=False,
+    save_path_suffix="",
+    translated_and_normal=False,
+)
