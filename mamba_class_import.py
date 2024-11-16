@@ -1,5 +1,6 @@
 import os
 import random
+import argparse
 import numpy as np
 from tqdm import tqdm
 
@@ -11,21 +12,9 @@ from torch.utils.data import Dataset, DataLoader
 from transformers import AutoTokenizer
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
-from typing import List, Optional, Tuple, Union
-from transformers.utils import (
-    ModelOutput,
-    add_start_docstrings,
-    add_start_docstrings_to_model_forward,
-    add_code_sample_docstrings,
-)
-from dataclasses import dataclass
-from transformers.models.mamba.modeling_mamba import (
-    MambaPreTrainedModel,
-    MambaModel,
-    MambaCache,
-    MAMBA_INPUTS_DOCSTRING,
-    MAMBA_START_DOCSTRING,
-)
+
+from utils.clean_data import process_data
+from mamba_classification import MambaForSequenceClassification
 
 models = {
     "mamba-tiny": "state-spaces/mamba-130m-hf",
@@ -110,133 +99,6 @@ class SentenceDataset(Dataset):
             "attention_mask": encoding["attention_mask"],
             "label": torch.tensor(label, dtype=torch.long),
         }
-
-
-@dataclass
-class MambaSequenceClassifierOutput(ModelOutput):
-    loss: Optional[torch.FloatTensor] = None
-    logits: torch.FloatTensor = None
-    cache_params: Optional[List[torch.FloatTensor]] = None
-    hidden_states: Optional[Tuple[torch.FloatTensor, ...]] = None
-
-
-class MambaClassificationHead(nn.Module):
-    def __init__(self, config):
-        super().__init__()
-        self.out_proj = nn.Linear(config.hidden_size, config.num_labels, bias=False)
-        self.out_proj.weight.data.normal_(mean=0.0, std=config.initializer_range)
-        self.config = config
-
-    def forward(self, features, **kwargs):
-        x = features
-        x = self.out_proj(x)
-        return x
-
-
-@add_start_docstrings(
-    """Mamba Model backbone with a sequence classification/regression head on top (a linear layer on top of
-    the pooled output) e.g. for GLUE tasks.""",
-    MAMBA_START_DOCSTRING,
-)
-class MambaForSequenceClassification(MambaPreTrainedModel):
-    def __init__(self, config):
-        super().__init__(config)
-        self.num_labels = config.num_labels
-        self.backbone = MambaModel(config)
-        self.classifier = nn.Linear(config.hidden_size, config.num_labels, bias=False)
-
-        for param in self.base_model.parameters():
-            param.requires_grad = False
-
-        self.post_init()
-
-    @add_start_docstrings_to_model_forward(MAMBA_INPUTS_DOCSTRING.format("batch_size, sequence_length"))
-    @add_code_sample_docstrings(
-        checkpoint=_CHECKPOINT_FOR_DOC,
-        output_type=MambaSequenceClassifierOutput,
-        config_class=_CONFIG_FOR_DOC,
-    )
-    def forward(
-        self,
-        input_ids: Optional[torch.LongTensor] = None,
-        inputs_embeds: Optional[torch.FloatTensor] = None,
-        cache_params: Optional[MambaCache] = None,
-        use_cache: Optional[bool] = None,
-        labels: Optional[torch.LongTensor] = None,
-        output_hidden_states: Optional[bool] = None,
-        return_dict: Optional[bool] = None,
-        **kwargs,
-    ) -> Union[Tuple, MambaSequenceClassifierOutput]:
-        return_dict = return_dict if return_dict is not None else self.config.use_return_dict
-
-        mamba_outputs = self.backbone(
-            input_ids,
-            cache_params=cache_params,
-            use_cache=use_cache,
-            inputs_embeds=inputs_embeds,
-            output_hidden_states=output_hidden_states,
-            return_dict=return_dict,
-        )
-        hidden_states = mamba_outputs[0]
-        logits = self.classifier(hidden_states)
-
-        if input_ids is not None:
-            batch_size, sequence_length = input_ids.shape[:2]
-        else:
-            batch_size, sequence_length = inputs_embeds.shape[:2]
-        assert (
-            self.config.pad_token_id is not None or batch_size == 1
-        ), "Cannot handle batch sizes > 1 if no padding token is defined."
-        
-        if self.config.pad_token_id is None:
-            sequence_lengths = -1
-        else:
-            if input_ids is not None:
-                sequence_lengths = torch.eq(input_ids, self.config.pad_token_id).int().argmax(-1) - 1
-                sequence_lengths = sequence_lengths % input_ids.shape[-1]
-                sequence_lengths = sequence_lengths.to(logits.device)
-            else:
-                sequence_lengths = -1
-                print(
-                    f"{self.__class__.__name__} will not detect padding tokens in `inputs_embeds`. Results may be "
-                    "unexpected if using padding tokens in conjunction with `inputs_embeds.`"
-                )
-
-        pooled_logits = logits[torch.arange(batch_size, device=logits.device), sequence_lengths]
-
-        loss = None
-        if labels is not None:
-            if self.config.problem_type is None:
-                if self.num_labels == 1:
-                    self.config.problem_type = "regression"
-                elif self.num_labels > 1 and (labels.dtype == torch.long or labels.dtype == torch.int):
-                    self.config.problem_type = "single_label_classification"
-                else:
-                    self.config.problem_type = "multi_label_classification"
-
-            if self.config.problem_type == "regression":
-                loss_fct = MSELoss()
-                if self.num_labels == 1:
-                    loss = loss_fct(pooled_logits.squeeze(), labels.squeeze())
-                else:
-                    loss = loss_fct(pooled_logits, labels)
-            elif self.config.problem_type == "single_label_classification":
-                loss_fct = CrossEntropyLoss()
-                loss = loss_fct(pooled_logits.view(-1, self.num_labels), labels.view(-1))
-            elif self.config.problem_type == "multi_label_classification":
-                loss_fct = BCEWithLogitsLoss()
-                loss = loss_fct(pooled_logits, labels)
-                
-        if not return_dict:
-            output = (pooled_logits,) + mamba_outputs[1:]
-            return ((loss,) + output) if loss is not None else output
-
-        return MambaSequenceClassifierOutput(
-            loss=loss,
-            logits=pooled_logits,
-            cache_params=mamba_outputs.cache_params,
-            hidden_states=mamba_outputs.hidden_states,
-        )
 
 
 def train_model(
@@ -343,11 +205,6 @@ def evaluate_model(model, data_loader, device):
             all_preds.extend(preds.cpu().tolist())
             all_true.extend(labels.cpu().tolist())
 
-    # Print the first 20 predictions
-    print("First 20 predictions:")
-    for i in range(20):
-        print(f"True: {all_true[i]}, Predicted: {all_preds[i]}")
-
     # Calculate evaluation metrics
     avg_loss = total_loss / len(data_loader)
     accuracy = accuracy_score(all_true, all_preds)
@@ -357,3 +214,151 @@ def evaluate_model(model, data_loader, device):
 
     return avg_loss, accuracy, f1, precision, recall
 
+
+def main(
+    num_epochs=5,
+    model_type="mamba-tiny",
+    only_test=False,
+    csv_path="edos_labelled_aggregated.csv",
+    translated_text=False,
+    save_path_suffix="",
+    translated_and_normal=False,
+):
+    device = setup()
+
+    assert model_type in models.keys(), f"Model {model_type} not found in available models."
+    model_type = models[model_type]
+    print(f"Using model: {model_type}")
+
+    # Process data
+    datasets, _, _ = process_data(
+        csv_path,
+        vectorize=False,
+        translated_text=translated_text,
+        use_normal_translated_both=translated_and_normal,
+    )
+
+    tokenizer = AutoTokenizer.from_pretrained(model_type)
+
+    # Train and evaluate models for each task
+    for task in ["binary", "5-way", "11-way"]:
+        print(f"\nTraining and evaluating {task} classification model")
+
+        # Prepare datasets
+        train_texts, train_labels = datasets[task]["train"]
+        val_texts, val_labels = datasets[task]["val"]
+        test_texts, test_labels = datasets[task]["test"]
+
+        print("Making datasets")
+        train_dataset = SentenceDataset(train_texts, train_labels, tokenizer)
+        val_dataset = SentenceDataset(val_texts, val_labels, tokenizer)
+        test_dataset = SentenceDataset(test_texts, test_labels, tokenizer)
+
+        class_weights = train_dataset.get_class_weights()
+
+        # Create data loaders
+        train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=64)
+        test_loader = DataLoader(test_dataset, batch_size=64)
+
+        # Initialize the model
+        print("Creating model")
+        n_classes = len(np.unique(train_labels))
+        model = MambaForSequenceClassification.from_pretrained(
+            model_type, num_labels=n_classes
+        ).to(device)
+        optimizer = optim.AdamW(model.parameters(), lr=2e-5)
+
+        save_path = f"models/best_model_{task}_{model_type}"
+        if "/" in model_type:
+            save_path = f"models/best_model_{task}_{model_type.split('/')[-1]}"
+        save_path += save_path_suffix + ".pth"
+        print(f"Model will be saved at: {save_path}")
+
+        # Train the model
+        if not only_test:
+            train_model(
+                model,
+                train_loader,
+                val_loader,
+                optimizer,
+                device,
+                task,
+                num_epochs=num_epochs,
+                save_path=save_path,
+            )
+
+        # Load the best model
+        model.load_state_dict(torch.load(save_path, map_location=device))
+
+        # Evaluate on test set
+        test_loss, test_accuracy, test_f1, test_precision, test_recall = evaluate_model(
+            model, test_loader, device
+        )
+
+        # Print test results
+        print(f"\nTest Results for {task} classification:")
+        print(f"Loss: {test_loss:.4f}")
+        print(f"Accuracy: {test_accuracy:.4f}")
+        print(f"Macro F1 Score: {test_f1:.4f}")
+        print(f"Macro Precision: {test_precision:.4f}")
+        print(f"Macro Recall: {test_recall:.4f}")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Train and evaluate Mamba models with optional SMOTE sampling."
+    )
+    parser.add_argument(
+        "--num_epochs",
+        type=int,
+        default=10,
+        help="Number of epochs to train the model (default: 10)",
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="mamba-tiny",
+        help=f"Model to use for training (default: mamba-tiny). Choices: {models.keys()}",
+    )
+    parser.add_argument(
+        "--test",
+        action="store_true",
+        help="Run the model only for testing",
+    )
+    parser.add_argument(
+        "--csv_path",
+        type=str,
+        default="edos_labelled_aggregated.csv",
+        help="Path to the CSV file containing the data (default: edos_labelled_aggregated.csv)",
+    )
+    parser.add_argument(
+        "--translated_text",
+        action="store_true",
+        help="Use translated text for training",
+    )
+    parser.add_argument(
+        "--translated_and_normal",
+        action="store_true",
+        help="Use both translated and normal text for training",
+    )
+    parser.add_argument(
+        "--save_path_suffix",
+        type=str,
+        default="",
+        help="Suffix to add to the model save path (default: '')",
+    )
+    args = parser.parse_args()
+
+    print("\n\n")
+    print("Arguments:", args)
+
+    main(
+        num_epochs=args.num_epochs,
+        model_type=args.model,
+        only_test=args.test,
+        csv_path=args.csv_path,
+        translated_text=args.translated_text,
+        save_path_suffix=args.save_path_suffix,
+        translated_and_normal=args.translated_and_normal,
+    )
