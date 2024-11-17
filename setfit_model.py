@@ -2,11 +2,13 @@ import os
 import random
 import argparse
 import numpy as np
+from tqdm import tqdm
 
 import torch
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 
-from setfit import SetFitModel, Trainer
+# Import SetFit modules
+from setfit import SetFitModel, SetFitTrainer
 from datasets import Dataset
 from utils.clean_data import process_data  # Assuming this module exists and works similarly
 
@@ -83,17 +85,17 @@ def main(
         print("Creating SetFit model")
         model = SetFitModel.from_pretrained(model_name)
 
-        # Initialize the Trainer
-        trainer = Trainer(
+        # Initialize the SetFit trainer
+        trainer = SetFitTrainer(
             model=model,
             train_dataset=train_data,
             eval_dataset=val_data,
             metric="accuracy",
             batch_size=16,
-            num_iterations=num_iterations,
             num_epochs=num_epochs,
+            num_iterations=num_iterations,
             seed=42,
-            column_mapping={"text": "text", "label": "label"},
+            column_mapping={"text": "text", "label": "label"}
         )
 
         save_path = f"models/setfit_best_model_{task}_{model_type}"
@@ -105,11 +107,11 @@ def main(
         if not only_test:
             trainer.train()
 
-            # Save the trained model
+            # Save the best model
             model.save_pretrained(save_path)
-            print(f"Saved model for {task} classification.")
+            print(f"Saved best model for {task} classification.")
 
-        # Load the model
+        # Load the best model
         model = SetFitModel.from_pretrained(save_path)
 
         # Evaluate on test set
@@ -134,7 +136,7 @@ if __name__ == "__main__":
         "--num_epochs",
         type=int,
         default=1,
-        help="Number of epochs to train the classification head (default: 1)",
+        help="Number of epochs to train the model (default: 1)",
     )
     parser.add_argument(
         "--num_iterations",
