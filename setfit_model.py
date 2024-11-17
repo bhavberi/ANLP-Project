@@ -8,7 +8,7 @@ import torch
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 
 # Import SetFit modules
-from setfit import SetFitModel, SetFitTrainer
+from setfit import SetFitModel, Trainer
 from datasets import Dataset
 from utils.clean_data import process_data  # Assuming this module exists and works similarly
 
@@ -85,17 +85,16 @@ def main(
         print("Creating SetFit model")
         model = SetFitModel.from_pretrained(model_name)
 
-        # Initialize the SetFit trainer
-        trainer = SetFitTrainer(
+        # Initialize the Trainer
+        trainer = Trainer(
             model=model,
             train_dataset=train_data,
             eval_dataset=val_data,
             metric="accuracy",
             batch_size=16,
             num_epochs=num_epochs,
-            num_iterations=num_iterations,
             seed=42,
-            column_mapping={"text": "text", "label": "label"}
+            column_mapping={"text": "text", "label": "label"},
         )
 
         save_path = f"models/setfit_best_model_{task}_{model_type}"
