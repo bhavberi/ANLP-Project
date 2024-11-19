@@ -54,6 +54,7 @@ def setup():
     print(f"Using device: {device}")
 
     os.makedirs("models", exist_ok=True)
+    os.makedirs("results", exist_ok=True)
 
     return device
 
@@ -294,6 +295,7 @@ def main(
     translated_text=False,
     save_path_suffix="",
     translated_and_normal=False,
+    save_results=False,
 ):
     device = setup()
 
@@ -315,6 +317,8 @@ def main(
     )
 
     tokenizer = AutoTokenizer.from_pretrained(model_type, do_lower_case=True)
+
+    results = {}
 
     # Train and evaluate models for each task
     for task in ["binary", "5-way", "11-way"]:
@@ -386,6 +390,24 @@ def main(
         print(f"Macro Precision: {test_precision:.4f}")
         print(f"Macro Recall: {test_recall:.4f}")
 
+        results[task] = {
+            "loss": test_loss,
+            "accuracy": test_accuracy,
+            "f1": test_f1,
+            "precision": test_precision,
+            "recall": test_recall,
+        }
+    
+    # Save results
+    if save_results:
+        results_path = f"results/results_{model_type.split('/')[-1]}{save_path_suffix}.txt"
+        with open(results_path, "w") as f:
+            for task, metrics in results.items():
+                f.write(f"{task} classification\n")
+                for metric, value in metrics.items():
+                    f.write(f"{metric}: {value:.4f}\n")
+                f.write("\n")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -440,6 +462,11 @@ if __name__ == "__main__":
         default="",
         help="Suffix to add to the model save path (default: '')",
     )
+    parser.add_argument(
+        "--save_results",
+        action="store_true",
+        help="Save the results to a text file",
+    )
     args = parser.parse_args()
 
     print("\n\n")
@@ -455,4 +482,5 @@ if __name__ == "__main__":
         translated_text=args.translated_text,
         save_path_suffix=args.save_path_suffix,
         translated_and_normal=args.translated_and_normal,
+        save_results=args.save_results
     )
