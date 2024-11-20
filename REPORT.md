@@ -448,7 +448,7 @@ We used a publicly available model for annotating sentiment data on the dataset.
 1. The models for all 3 tasks show a consistent trend of higher/comparable accuracy compared to the baseline model for the task. This indicates that the model does consider sentiment information and encodes it in its representations in the earlier layers.
 2. In the later layers, the accuracy drops significantly, compared to the baseline model. This suggests that sentiment information is more prevalent in the earlier layers and gets diluted or transformed into other features in the later layers that may be more relevant for the main task.
 
-### Task 2
+### Task 2: Female gendered words detection
 The dataset was annotated using a rule-based approach where we defined a list of words related to the female gender. Here is the list:
 
 `["she", "her", "hers", "woman", "women", "girl", "lady", "ladies"]`
