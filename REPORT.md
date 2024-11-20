@@ -9,6 +9,10 @@
 
 # Final Report
 
+![sexist_example](./images/sexist.png)
+![non_sexist_example](./images/non-sexist.png)
+<center> Teaser Image </center>
+
 ## Problem Statement
 
 This project focuses on developing explainable models for detecting online sexism, addressing the limitations of existing tools that provide broad, high-level classifications. The goal is to build more accurate models capable of offering fine-grained classifications for sexist content from various platforms. By leveraging interpretability techniques, we aim to also look into the inner workings of the models to understand how they make predictions and identify the features that contribute to these predictions. While sexism detection solutions exist in the English language, we also aim to extend this capability to other languages in our work.
@@ -443,7 +447,7 @@ Interpretability, in the context of machine learning models, refers to the abili
 ## Probing
 Probing is a technique used to analyze the representations learned by a model by training a secondary task on top of the model's hidden layers. By formulating probing tasks that target specific linguistic properties or concepts, we can gain insights into what information the model has encoded in its internal representations. We have formulated the following task to probe the model's representations:
 1. **Sentiment Analysis**: To understand if the model has learned sentiment information, we train sentiment analysis classifiers on top of the model's hidden layers. Often times, sexist content is associated with negative sentiment, and probing for sentiment can reveal which layers capture this information, if any do.
-2. **Female gendered words detection**: To understand whether the presence of words belonging to a particular gender influences the model's predictions, we train classifiers on all the hidden layers. This probing task helps identify whether the model has a bias towards gendered language and can be extended to cover different genders in order to present a comparative analysis.
+2. **Female gendered words detection**: To understand whether the presence of words belonging to a particular gender influences the model's predictions, we train classifiers on all the hidden layers. This probing task helps identify whether the model has a bias towards gendered language and can be extended to cover different genders in order to present a comparative analysis. This task was chosen to understand if the model has bias towards female gendered language.
 
 In order to provide a suitable analysis of the tasks, we also use a randomly initialized model as a baseline to compare the performance of the probing tasks. All the interpretability tasks were carried out on the `bert-base-uncased` model.
 
@@ -477,6 +481,8 @@ The dataset was annotated using a rule-based approach where we defined a list of
 
 `["she", "her", "hers", "woman", "women", "girl", "lady", "ladies"]`
 
+![men-women](./images/Men-vs-Women.png)
+
 Similar to Task 1, there was a class imbalance in the dataset, so we downsampled the majority class. We then proceeded to follow the same steps as Task 1 for getting the results which can be seen here:
 
 #### Binary Classification
@@ -498,6 +504,19 @@ Similar to Task 1, there was a class imbalance in the dataset, so we downsampled
 As online platforms become more global, content in multiple languages poses challenges for detecting harmful behaviors like sexism. Current systems are often limited to English, leaving non-English content inadequately addressed, despite its prevalence and cultural nuances.
 
 Extending our project to multilingual sexism prediction ensures inclusivity and fairness in content moderation across languages. By leveraging multilingual Transformer models like BERT-multilingual or XLM-R, we aim to detect sexism effectively in diverse linguistic and cultural contexts, enabling a safer and more inclusive digital environment.
+
+![Multilingual](./images/hindi-sexist.png)
+![Multilingual](./images/marathi-sexist.png)
+In the above images, we can see examples of sexist content in Hindi and Marathi languages. The given sentences were:
+
+English\
+Former BBC journalist Thuto Mali says that universal credit is now a woman’s rights issue as it’s affecting her finances. If she wants to open her legs and sprew a sprog that’s her problem , my problem is I’m not willing to finance the sprog
+
+Hindi\
+बीबीसी के पूर्व पत्रकार टीटू माली कहते हैं कि सार्वभौमिक ऋण अब एक महिला के अधिकारों का मुद्दा है क्योंकि यह उसके वित्त को प्रभावित कर रहा है। यदि वह अपने पैर खोलना चाहती है और एक बकवास फैला रही है जो उसकी समस्या है, तो मेरी समस्या यह है कि मैं बकवास को वित्तपो
+
+Marathi\
+बीबीसीचे माजी पत्रकार टीटू माली म्हणतात की सार्वत्रिक पत आता महिलांच्या हक्काचा मुद्दा आहे कारण त्याचा तिच्या आर्थिक स्थितीवर परिणाम होत आहे. जर तिला पाय उघडून तिचा प्रश्न पसरवायचा असेल तर माझा प्रश्न आहे की मी त्या प्रश्नाचे उत्तर देण्यास तयार नाही.
 
 ## Dataset Generation
 
