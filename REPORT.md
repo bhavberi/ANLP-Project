@@ -190,8 +190,8 @@ The following table shows the performance of the BERT model on the dataset in br
 | bert-mini               | 0.5753             | 0.237              |
 | bert-small              | 0.705              | 0.2781             |
 | bert-medium             | 0.6175             | 0.2765             |
-| bert-large-cased        |                    |                    |
-| bert-base-uncased       | 0.7472             | 0.3058             |
+| bert-large-cased        | **0.7329**                   | 0.**2823**                   |
+| bert-base-uncased       | ***0.7472***             | 0.***3058***             |
 | distilbert-base-cased   | 0.7153             | 0.2791             |
 | distilbert-base-uncased | 0.7063             | 0.2792             |
 | roberta-base            | 0.7575 (All zeros) | 0.0718             |
@@ -237,7 +237,7 @@ The following table shows the performance of the different fine-tuning strategie
 |                         | LORA                     | 0.8347       | 0.7886             |
 | distilbert-base-uncased | Full                     | 0.855        | 0.8025             |
 |                         | Freezing                 | 0.7368       | 0.6847             |
-|                         | LORA                     |              |                    |
+
 
 ### 5-Way Classification
 
@@ -248,7 +248,7 @@ The following table shows the performance of the different fine-tuning strategie
 |                         | LORA                     | 0.6055       | 0.3836             |
 | distilbert-base-uncased | Full                     | 0.765        | 0.4576             |
 |                         | Freezing                 | 0.5302       | 0.3299             |
-|                         | LORA                     |              |                    |
+
 
 ### 12-Way Classification
 
@@ -259,7 +259,6 @@ The following table shows the performance of the different fine-tuning strategie
 |                         | LORA                     | 0.391        | 0.1925             |
 | distilbert-base-uncased | Full                     | 0.7063       | 0.2792             |
 |                         | Freezing                 | 0.4215       | 0.1824             |
-|                         | LORA                     |              |                    |
 
 ## Ablation Study - Class Weights
 
@@ -295,11 +294,11 @@ Despite these efforts, we did not achieve satisfactory scores with this hierarch
 | bert-base-uncased | 0.854               | 0.8061              | 0.772              | 0.513             | 0.7484              | 0.307         |
 
 
-## Study on Loss Functions - Focal Loss
+## Study on Loss Function - Focal Loss
 
 In our sexism prediction dataset, there exists a significant class imbalance, with approximately 75% of the data belonging to the non-sexist class and only 25% distributed among various sexist classes. This imbalance becomes even more pronounced in the 12-way classification setup, where the positive samples are further divided into 11 different categories, each representing a distinct type of sexism. Initially, we utilized the standard cross-entropy loss function for training, which is effective for balanced datasets but often struggles with imbalanced data, leading to biased predictions towards the majority class.
 
-To address this challenge, we employed **Focal Loss**, a modification of the cross-entropy loss designed to focus learning on hard-to-classify samples. Focal Loss introduces a modulating factor `(1 - p_t)^γ` to the standard cross-entropy loss, where p_t is the predicted probability of the true class, and γ is a tunable focusing parameter. This factor reduces the loss contribution of well-classified examples, allowing the model to pay more attention to underrepresented or misclassified classes.
+To address this challenge, we employed **Focal Loss**, a modification of the cross-entropy loss designed to focus learning on hard-to-classify samples. Focal Loss introduces a modulating factor `(1 - p_t) ^ γ` to the standard cross-entropy loss, where p_t is the predicted probability of the true class, and γ is a tunable focusing parameter. This factor reduces the loss contribution of well-classified examples, allowing the model to pay more attention to underrepresented or misclassified classes.
 
 In our task, Focal Loss proved particularly useful for tackling the severe imbalance between the non-sexist and sexist categories. By down-weighting the influence of the majority class and emphasizing learning on the minority sexist classes, Focal Loss helped improve the model's ability to identify and differentiate between the finer-grained sexism categories. This approach enhanced overall classification performance - recall, particularly for the less-represented positive samples, ensuring a more balanced and nuanced detection of sexism.
 
@@ -310,7 +309,7 @@ Below are the results using Focal Loss and Cross Entropy loss, on the bert-base-
 | Loss Function        | Task                       | Accuracy | Macro F1 | Macro Recall |
 |----------------------|----------------------------|----------|----------|--------------|
 | **Focal Loss**       | Binary Classification      | 0.8508   | 0.8054   | 0.8195       |
-|                      | 5-Way Classification       | 0.7930   | 0.5115   | 0.5176       |
+|                      | 5-Way Classification       | 0.7930   | 0.5116   | 0.5186       |
 |                      | 12-Way Classification      | 0.6280   | 0.3069   | 0.4012       |
 | **Cross-Entropy Loss** | Binary Classification      | 0.8540   | 0.8061   | 0.8139       |
 |                      | 5-Way Classification       | 0.7650   | 0.5075   | 0.5179       |
@@ -438,11 +437,11 @@ In contrast, the standard Mamba architecture, being optimized for specific tasks
 | ----------------- | ----------------- | ------------------- | ------------------- | ------------------ | ------------------ | ------------------- |
 | mamba-130m-hf | 0.8528               | 0.7827              | 0.798              | 0.42             | 0.787              | 0.2571              |
 
-> NOTE: Due to resource limitations, we could only run experiments for the 130M parameter model.
+> NOTE: Due to resource limitations, we could only run experiments for the 130M parameter model and upto 5 epochs. It is expected that the model will perform better with more training time and larger models.
 
 ## Analysis
 
-In binary classification, the model achieves high accuracy and a strong F1 score, indicating effective performance in distinguishing between two classes. The F1 score balances precision and recall, offering a comprehensive evaluation of the model's capability.
+In binary classification, the model achieves high accuracy and a strong F1 score, indicating effective performance in distinguishing between two classes. The F1 score balances precision and recall, offering a comprehensive evaluation of the model's capability.\
 For the 5-way and 12-way classification tasks, there is a decline in both accuracy and F1 scores compared to the binary classification. The lower F1 scores suggest challenges in maintaining precision and recall across multiple classes.
 
 # Extension - Interpretability in Sexism Prediction
@@ -513,13 +512,13 @@ Extending our project to multilingual sexism prediction ensures inclusivity and 
 ![Multilingual](./images/marathi-sexist.png)
 In the above images, we can see examples of sexist content in Hindi and Marathi languages. The given sentences were:
 
-English\
+English:\
 Former BBC journalist Thuto Mali says that universal credit is now a woman’s rights issue as it’s affecting her finances. If she wants to open her legs and sprew a sprog that’s her problem , my problem is I’m not willing to finance the sprog
 
-Hindi\
+Hindi:\
 बीबीसी के पूर्व पत्रकार टीटू माली कहते हैं कि सार्वभौमिक ऋण अब एक महिला के अधिकारों का मुद्दा है क्योंकि यह उसके वित्त को प्रभावित कर रहा है। यदि वह अपने पैर खोलना चाहती है और एक बकवास फैला रही है जो उसकी समस्या है, तो मेरी समस्या यह है कि मैं बकवास को वित्तपो
 
-Marathi\
+Marathi:\
 बीबीसीचे माजी पत्रकार टीटू माली म्हणतात की सार्वत्रिक पत आता महिलांच्या हक्काचा मुद्दा आहे कारण त्याचा तिच्या आर्थिक स्थितीवर परिणाम होत आहे. जर तिला पाय उघडून तिचा प्रश्न पसरवायचा असेल तर माझा प्रश्न आहे की मी त्या प्रश्नाचे उत्तर देण्यास तयार नाही.
 
 ## Dataset Generation
