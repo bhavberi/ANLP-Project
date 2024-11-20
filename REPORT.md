@@ -9,6 +9,9 @@
 
 # Final Report
 
+Model files can be found at [https://huggingface.co/bhavberi/ANLP-Project/](https://huggingface.co/bhavberi/ANLP-Project/tree/main).\
+Dataset files can be found at [https://huggingface.co/datasets/bhavberi/Sexism-Prediction/](https://huggingface.co/datasets/bhavberi/Sexism-Prediction/tree/main).
+
 <center>
    <img src="./images/sexist.png" alt="Example image showing a sexist statement or content" style="max-width: 100%; height: auto;">
    <img src="./images/non-sexist.png" alt="Example image showing a non-sexist statement or content" style="max-width: 100%; height: auto;"><br/>
