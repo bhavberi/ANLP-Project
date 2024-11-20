@@ -1,4 +1,3 @@
-import os
 import random
 import argparse
 import numpy as np
@@ -7,17 +6,14 @@ import pandas as pd
 
 import torch
 import torch.nn as nn
-import torch.optim as optim
 from scipy.sparse import issparse
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 from peft import get_peft_model, LoraConfig, TaskType
 from transformers import (
     AutoTokenizer,
     AutoModelForSequenceClassification,
 )
-from sklearn.utils.class_weight import compute_class_weight
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
-import nltk
+
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 import re
@@ -60,6 +56,7 @@ def setup():
 
     return device
 
+
 def process_data(csv_path):
     # Load the data
     data = list(pd.read_csv(csv_path, nrows=4096)["text"])
@@ -69,7 +66,9 @@ def process_data(csv_path):
     cleaned_data = []
     for index, sentence in enumerate(tqdm(data)):
         sentence = sentence.strip().lower()
-        sentence = re.sub(r'https?://[^\s<>"]+|www\.[^\s<>"]+', "", sentence)  # Remove URLs
+        sentence = re.sub(
+            r'https?://[^\s<>"]+|www\.[^\s<>"]+', "", sentence
+        )  # Remove URLs
         sentence = re.sub(
             r"\[(url|user)\]", "", sentence
         )  # Remove [URL] and [USER] tags
@@ -77,18 +76,16 @@ def process_data(csv_path):
         tokenized_words = [
             re.sub(r"[^a-z0-9]", "", word) for word in tokenized_words if word
         ]  # Keep only alphanumeric characters
-        tokenized_words = [
-            lemmatizer.lemmatize(word) for word in tokenized_words
-        ]
+        tokenized_words = [lemmatizer.lemmatize(word) for word in tokenized_words]
 
         if not tokenized_words:
             print(f"Empty sentence at index {index}: {data[index]}")
             continue
-        
+
         sentence = " ".join(tokenized_words)
-        
+
         cleaned_data.append(sentence)
-    
+
     return cleaned_data
 
 
@@ -135,6 +132,7 @@ class SentenceDataset(Dataset):
             "input_ids": encoding["input_ids"],
             "attention_mask": encoding["attention_mask"],
         }
+
 
 class TransformerClassifier(nn.Module):
     def __init__(
@@ -184,41 +182,54 @@ class TransformerClassifier(nn.Module):
 
     def forward(self, input_ids, attention_mask):
         # Forward pass through LoRA-adapted BERTForSequenceClassification
-        outputs = self.transformer(
-            input_ids=input_ids, attention_mask=attention_mask
-        )
+        outputs = self.transformer(input_ids=input_ids, attention_mask=attention_mask)
         return outputs
-    
-    def predict(self, text, tokenizer, device):        
+
+    def predict(self, text, tokenizer, device):
         self.eval()
         text_encoding = tokenizer.encode_plus(
-                text,
-                add_special_tokens=True,
-                max_length=128,
-                return_token_type_ids=False,
-                padding="max_length",
-                truncation=True,
-                return_attention_mask=True,
-                return_tensors="pt",
-            )
+            text,
+            add_special_tokens=True,
+            max_length=128,
+            return_token_type_ids=False,
+            padding="max_length",
+            truncation=True,
+            return_attention_mask=True,
+            return_tensors="pt",
+        )
         input_ids = text_encoding["input_ids"].to(device)
         attention_mask = text_encoding["attention_mask"].to(device)
         with torch.no_grad():
             outputs = self(input_ids, attention_mask)
             prediction = torch.argmax(outputs.logits, dim=1)
         return prediction.cpu().numpy()[0]
-    
-def main(
-        model_type = "bert-base",
-        apply_lora = False,
-        freeze = False,
-        task = "binary"
-        ):
+
+
+def main(model_type="bert-base", apply_lora=False, freeze=False):
     device = setup()
 
-    binary_mapping = {'Not sexist': 0, 'Sexist': 1}
-    category_mapping =  {'Not sexist': 0, '3. Animosity': 1, '2. Derogation': 2, '4. Prejudiced discussions': 3, '1. Threats, plans to harm and incitement': 4}
-    vector_mapping = {'Not sexist': 0, '3.3 Backhanded gendered compliments': 1, '2.3 Dehumanising attacks & overt sexual objectification': 2, '2.1 Descriptive attacks': 3, '2.2 Aggressive and emotive attacks': 4, '4.2 Supporting systemic discrimination against women as a group': 5, '1.2 Incitement and encouragement of harm': 6, '4.1 Supporting mistreatment of individual women': 7, '3.2 Immutable gender differences and gender stereotypes': 8, '3.1 Casual use of gendered slurs, profanities, and insults': 9, '1.1 Threats of harm': 10, '3.4 Condescending explanations or unwelcome advice': 11}
+    binary_mapping = {"Not sexist": 0, "Sexist": 1}
+    category_mapping = {
+        "Not sexist": 0,
+        "3. Animosity": 1,
+        "2. Derogation": 2,
+        "4. Prejudiced discussions": 3,
+        "1. Threats, plans to harm and incitement": 4,
+    }
+    vector_mapping = {
+        "Not sexist": 0,
+        "3.3 Backhanded gendered compliments": 1,
+        "2.3 Dehumanising attacks & overt sexual objectification": 2,
+        "2.1 Descriptive attacks": 3,
+        "2.2 Aggressive and emotive attacks": 4,
+        "4.2 Supporting systemic discrimination against women as a group": 5,
+        "1.2 Incitement and encouragement of harm": 6,
+        "4.1 Supporting mistreatment of individual women": 7,
+        "3.2 Immutable gender differences and gender stereotypes": 8,
+        "3.1 Casual use of gendered slurs, profanities, and insults": 9,
+        "1.1 Threats of harm": 10,
+        "3.4 Condescending explanations or unwelcome advice": 11,
+    }
     if model_type in models.keys():
         model_type = models[model_type]
     else:
@@ -226,55 +237,80 @@ def main(
             f"Model {model_type} not found in available models. Using {model_type} directly as model."
         )
 
-    tasks = ["binary", "5-way", "12-way"]
-    counts = [2, 5, 12]
-    mappings = [binary_mapping, category_mapping, vector_mapping]
-
-    if task not in tasks:
-        print(f"Task {task} not found in available tasks. Using binary task.")
-        task = "binary"
-        count = 2
-        mapping = binary_mapping
-    else:
-        count = counts[tasks.index(task)]
-        mapping = mappings[tasks.index(task)]
-
-    print(f"Running {task} classification task")
-
     # Load the tokenizer
     tokenizer = AutoTokenizer.from_pretrained(model_type)
 
     # Load the model
-    model = TransformerClassifier(
-        n_classes=count,
+    binary_model = TransformerClassifier(
+        n_classes=2,
         model=model_type,
         LoRA=apply_lora,
         freeze=freeze,
-        class_weights=np.ones(count)
+        class_weights=np.ones(2),
     ).to(device)
-    
-    load_path = f"models/best_model_{task}_{model_type}"
-    if "/" in model_type:
-        load_path = f"models/best_model_{task}_{model_type.split('/')[-1]}"
-    load_path += ".pth"
+    five_way_model = TransformerClassifier(
+        n_classes=5,
+        model=model_type,
+        LoRA=apply_lora,
+        freeze=freeze,
+        class_weights=np.ones(5),
+    ).to(device)
+    twelve_way_model = TransformerClassifier(
+        n_classes=12,
+        model=model_type,
+        LoRA=apply_lora,
+        freeze=freeze,
+        class_weights=np.ones(12),
+    ).to(device)
 
-    # Load the model weights
-    model.load_state_dict(torch.load(load_path, map_location=device))
+    load_path = f"models/best_model_{"binary"}_{model_type}"
+    if "/" in model_type:
+        load_path = f"models/best_model_{"binary"}_{model_type.split('/')[-1]}"
+    load_path += ".pth"
+    binary_model.load_state_dict(torch.load(load_path, map_location=device))
+
+    load_path = f"models/best_model_{"5-way"}_{model_type}"
+    if "/" in model_type:
+        load_path = f"models/best_model_{"5-way"}_{model_type.split('/')[-1]}"
+    load_path += ".pth"
+    five_way_model.load_state_dict(torch.load(load_path, map_location=device))
+
+    load_path = f"models/best_model_{"11-way"}_{model_type}"
+    if "/" in model_type:
+        load_path = f"models/best_model_{"11-way"}_{model_type.split('/')[-1]}"
+    load_path += ".pth"
+    twelve_way_model.load_state_dict(torch.load(load_path, map_location=device))
+
     while True:
         # Get input text
-        data = input("Enter text: ")
+        data = input("\n> ")
         if data == "exit":
             break
 
-        # Predict
-        prediction = model.predict(data, tokenizer, device)
-
-        # Find the label from mapping
-        for key, value in mapping.items():
+        # Predict Binary
+        prediction = binary_model.predict(data, tokenizer, device)
+        for key, value in binary_mapping.items():
             if value == prediction:
                 prediction = key
                 break
-        print("Model output: ", prediction)
+        print("Binary Model output:", prediction)
+
+        # Predict 5-way
+        prediction = five_way_model.predict(data, tokenizer, device)
+        for key, value in category_mapping.items():
+            if value == prediction:
+                prediction = key
+                break
+        print("5-way Model output:", prediction)
+
+        # Predict 12-way
+        prediction = twelve_way_model.predict(data, tokenizer, device)
+        for key, value in vector_mapping.items():
+            if value == prediction:
+                prediction = key
+                break
+        print("12-way Model output:", prediction)
+
 
 if __name__ == "__main__":
     # Add arguments to the parser
@@ -295,15 +331,6 @@ if __name__ == "__main__":
         action="store_true",
         help="Freeze the non-classification layers",
     )
-    parser.add_argument(
-        "--task",
-        type=str,
-        default="binary",
-        help="Classification task to run",
-    )
-    main(
-        model_type = "bert-base",
-        apply_lora = False,
-        freeze = False,
-        task = "binary"
-    )
+    args = parser.parse_args()
+
+    main(args.model_type, args.apply_lora, args.freeze)
