@@ -81,12 +81,12 @@ The following table shows the performance of the Logistic Regression model with 
 
 | Task                      | Set            | Accuracy | F1 Score |
 | ------------------------- | -------------- | -------- | -------- |
-| **Binary Classification** | Validation Set | 80.00%   | 73.08    |
-|                           | Test Set       | 80.77%   | 74.68    |
-| **5-Way Classification**  | Validation Set | 73.95%   | 39.99    |
-|                           | Test Set       | 73.28%   | 40.45    |
-| **12-Way Classification** | Validation Set | 71.90%   | 21.26    |
-|                           | Test Set       | 71.15%   | 22.53    |
+| **Binary Classification** | Validation Set | 0.8   | 0.7308    |
+|                           | Test Set       | 0.8077   | 0.7468    |
+| **5-Way Classification**  | Validation Set | 0.7395   | 0.3999    |
+|                           | Test Set       | 0.7328   | 0.4045    |
+| **12-Way Classification** | Validation Set | 0.7190   | 0.2126    |
+|                           | Test Set       | 0.7115   | 0.2253    |
 
 ### Method
 
@@ -117,8 +117,14 @@ The idea behind this approach is to train only one model for each level of the h
 
 In this way, the predictions of the model at each level are guided by the predictions of the model at the previous level, which helps in improving the performance of the model. The performance of the model using this approach is as follows:
 
-| Task | Set | Accuracy | F1 Score |
-| ---- | --- | -------- | -------- |
+| Task                       | Set         | Accuracy | F1 Score |
+|----------------------------|-------------|----------|----------|
+| **Binary Classification**  | Validation  | 0.7975   | 0.7291   |
+|                            | Test        | 0.8063   | 0.7441   |
+| **5-way Classification**   | Validation  | 0.7320   | 0.3990   |
+|                            | Test        | 0.7180   | 0.3966   |
+| **11-way Classification**  | Validation  | 0.7080   | 0.2274   |
+|                            | Test        | 0.6985   | 0.2239   |
 
 ### Observations
 
