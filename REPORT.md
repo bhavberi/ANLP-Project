@@ -191,6 +191,28 @@ The following table shows the performance of the BERT model on the dataset in br
 
 ### Observations
 
+1. Model Size and Performance Correlation:
+   - In binary classification, there's a clear positive correlation between model size and performance, with bert-large-cased achieving the best results (Accuracy: 0.8628, Macro F1: 0.8098)
+   - This trend is less pronounced in 5-way and 12-way classification tasks, where medium-sized models sometimes outperform larger ones
+
+2. Classification Complexity Impact:
+   - Performance decreases significantly as classification complexity increases:
+     * Binary: ~0.83-0.86 accuracy range
+     * 5-way: ~0.62-0.77 accuracy range
+     * 12-way: ~0.50-0.75 accuracy range
+
+3. Model Variants Performance:
+   - DistilBERT shows competitive performance despite being smaller, especially in binary classification
+   - RoBERTa performs well in binary and 5-way tasks but shows inconsistent results in 12-way classification (possible convergence issues with all zeros prediction)
+   - ALBERT generally performs lower than other variants across all tasks
+
+4. Notable Findings:
+   - bert-base-uncased shows consistent strong performance across all tasks
+   - The performance gap between different model variants narrows in more complex classification tasks
+   - There's a significant drop in Macro F1 scores in multi-class scenarios, indicating challenges with class imbalance
+
+These results suggest that while larger models generally perform better for simple binary tasks, the optimal model choice for multi-class problems may depend on factors beyond model size alone.
+
 ## Ablation Study - Fine-Tuning Strategies
 
 We tried different fine-tuning strategies to see which one performs the best on our task. The above results were obtained by fully fine-tuning the model on the dataset. We also tried freezing the BERT model and only fine-tuning the classification layer on top of it. We also tried the LORA technique, which is a technique that fine-tunes the model on the dataset by adjusting only a small subset of its parameters, specifically low-rank matrices inserted into the model's architecture, reducing computational overhead and memory usage.\
@@ -612,7 +634,7 @@ The performance of **Bert-base-multilingual-cased** and **Bert-base-multilingual
 
 ### Cross-Lingual Results & Analysis
 
-> **English** (Bert-base-multilingual-cased)
+**English** (Bert-base-multilingual-cased)
 
 | **Language** | **Binary Accuracy** | **Binary F1 Score** | **5-Way Accuracy** | **5-Way F1 Score** | **12-Way Accuracy** | **12-Way F1 Score** |
 | --- | ------ | ------ | ------ | ------ | ------ | ------ |
@@ -625,7 +647,7 @@ The performance of **Bert-base-multilingual-cased** and **Bert-base-multilingual
 | kaz | 0.7578 | 0.4351 | 0.7572 | 0.1748 | 0.7535 | 0.0733 |
 | pol | 0.7420 | 0.6002 | 0.7145 | 0.2554 | 0.6385 | 0.1258 |
 
-> **French** (Bert-base-multilingual-cased)
+**French** (Bert-base-multilingual-cased)
 
 | **Language** | **Binary Accuracy** | **Binary F1 Score** | **5-Way Accuracy** | **5-Way F1 Score** | **12-Way Accuracy** | **12-Way F1 Score** |
 | --- | ------ | ------ | ------ | ------ | ------ | ------ |
@@ -638,7 +660,7 @@ The performance of **Bert-base-multilingual-cased** and **Bert-base-multilingual
 | kaz | 0.7575 | 0.4320 | 0.2562 | 0.1101 | 0.7502 | 0.0724 |
 | pol | 0.7668 | 0.5977 | 0.6607 | 0.2569 | 0.6515 | 0.1081 |
 
-> **Hindi** (Bert-base-multilingual-uncased)
+**Hindi** (Bert-base-multilingual-uncased)
 
 | **Language** | **Binary Accuracy** | **Binary F1 Score** | **5-Way Accuracy** | **5-Way F1 Score** | **12-Way Accuracy** | **12-Way F1 Score** |
 | --- | ------ | ------ | ------ | ------ | ------ | ------ |
@@ -651,7 +673,7 @@ The performance of **Bert-base-multilingual-cased** and **Bert-base-multilingual
 | kaz | 0.7165 | 0.4773 | 0.7575 | 0.1724 | 0.6490 | 0.0825 | 
 | pol | 0.4447 | 0.4405 | 0.7575 | 0.1724 | 0.6667 | 0.0794 |
 
-> **Kazakh** (Bert-base-multilingual-uncased)
+**Kazakh** (Bert-base-multilingual-uncased)
 
 | **Language** | **Binary Accuracy** | **Binary F1 Score** | **5-Way Accuracy** | **5-Way F1 Score** | **12-Way Accuracy** | **12-Way F1 Score** |
 | --- | ------ | ------ | ------ | ------ | ------ | ------ |
@@ -664,7 +686,7 @@ The performance of **Bert-base-multilingual-cased** and **Bert-base-multilingual
 | kaz | 0.7210 | 0.4744 | 0.7570 | 0.1724 | 0.6532 | 0.0799 |
 | pol | 0.2785 | 0.2507 | 0.7575 | 0.1724 | 0.4335 | 0.0902 |
 
-> **Polish** (Bert-base-multilingual-uncased)
+**Polish** (Bert-base-multilingual-uncased)
 
 | **Language** | **Binary Accuracy** | **Binary F1 Score** | **5-Way Accuracy** | **5-Way F1 Score** | **12-Way Accuracy** | **12-Way F1 Score** |
 | --- | ------ | ------ | ------ | ------ | ------ | ------ |
