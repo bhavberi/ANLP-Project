@@ -1,0 +1,45 @@
+With focal-loss:
+
+Test Results for binary classification:
+Loss: 0.0714
+Accuracy: 0.8508
+Macro F1 Score: 0.8054
+Macro Precision: 0.7945
+Macro Recall: 0.8195
+
+Test Results for 5-way classification:
+Loss: 0.1438
+Accuracy: 0.7930
+Macro F1 Score: 0.5115
+Macro Precision: 0.5110
+Macro Recall: 0.5176
+
+Test Results for 11-way classification:
+Loss: 0.0733
+Accuracy: 0.6280
+Macro F1 Score: 0.3069
+Macro Precision: 0.2773
+Macro Recall: 0.4012
+
+With cross-entropy loss:
+
+Test Results for binary classification:
+Loss: 0.8478
+Accuracy: 0.8540
+Macro F1 Score: 0.8061
+Macro Precision: 0.7993
+Macro Recall: 0.8139
+
+Test Results for 5-way classification:
+Loss: 1.7488
+Accuracy: 0.7650
+Macro F1 Score: 0.5075
+Macro Precision: 0.5066
+Macro Recall: 0.5179
+
+Test Results for 11-way classification:
+Loss: 3.6898
+Accuracy: 0.7472
+Macro F1 Score: 0.3058
+Macro Precision: 0.3286
+Macro Recall: 0.3113
