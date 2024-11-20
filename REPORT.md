@@ -127,6 +127,8 @@ In this way, the predictions of the model at each level are guided by the predic
 |                            | Test        | 0.6985   | 0.2239   |
 
 ### Observations
+1. The performance of the model was very similar to the hierarchical classification approach, for both accuracy and F1 score on all tasks.
+2. The beam search inspired hierarchical classification approach reduced the number of models required to be trained from 6 to 3, which reduced the resource requirements for training while retaining the performance benefits of hierarchical classification.
 
 # Deep Learning Models
 
