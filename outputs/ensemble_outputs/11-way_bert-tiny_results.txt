@@ -1,0 +1,7 @@
+Test Results for 11-way classification:
+Applying Boosting with Ensemble of Models
+Loss: 1.9312
+Accuracy: 0.6575
+Macro F1 Score: 0.2210
+Macro Precision: 0.2063
+Macro Recall: 0.2692

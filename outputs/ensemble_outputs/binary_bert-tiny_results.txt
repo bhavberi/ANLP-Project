@@ -1,0 +1,7 @@
+Test Results for binary classification:
+Applying Boosting with Ensemble of Models
+Loss: 0.5429
+Accuracy: 0.8207
+Macro F1 Score: 0.7616
+Macro Precision: 0.7562
+Macro Recall: 0.7678

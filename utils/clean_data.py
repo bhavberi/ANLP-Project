@@ -9,101 +9,169 @@ from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 
 # Download required NLTK data
-nltk.download('wordnet', quiet=True, download_dir='./nltk_data/')
-nltk.download('punkt', quiet=True, download_dir='./nltk_data/')
-nltk.data.path.append('./nltk_data/')
+nltk.download("wordnet", quiet=True, download_dir="./nltk_data/")
+nltk.download("punkt", quiet=True, download_dir="./nltk_data/")
+nltk.data.path.append("./nltk_data/")
 
-def clean_text(df):
+
+def clean_text(df, translated_text=False, use_normal_translated_both=False):
     """
     Clean and preprocess text data from a DataFrame.
     """
     lemmatizer = WordNetLemmatizer()
-    data = list(zip(df['text'], df['label_sexist'], df['label_category'], df['label_vector'], df['split']))
+
+    if use_normal_translated_both:
+        translated_text = False
+
+    data = list(
+        zip(
+            df["text"] if not translated_text else df["translated_text"],
+            df["label_sexist"],
+            df["label_category"],
+            df["label_vector"],
+            df["split"],
+        )
+    )
+    if use_normal_translated_both:
+        data += list(
+            zip(
+                df["translated_text"],
+                df["label_sexist"],
+                df["label_category"],
+                df["label_vector"],
+                df["split"],
+            )
+        )
+
     val_data, train_data, test_data = [], [], []
-    
-    for counter, (sentence, label_sexist, label_category, label_vector, split) in enumerate(tqdm(data)):
+
+    for counter, (
+        sentence,
+        label_sexist,
+        label_category,
+        label_vector,
+        split,
+    ) in enumerate(tqdm(data)):
         # Clean and preprocess the text
         sentence = sentence.strip().lower()
-        sentence = re.sub('https?://[^\s<>"]+|www\.[^\s<>"]+', '', sentence)  # Remove URLs
-        sentence = re.sub(r'\[(URL|USER)\]', '', sentence)  # Remove [URL] and [USER] tags
+        sentence = re.sub(
+            r'https?://[^\s<>"]+|www\.[^\s<>"]+', "", sentence
+        )  # Remove URLs
+        sentence = re.sub(
+            r"\[(URL|USER)\]", "", sentence
+        )  # Remove [URL] and [USER] tags
         tokenized_words = word_tokenize(sentence)
-        tokenized_words = [re.sub(r'[^a-z0-9]', '', word) for word in tokenized_words if word]  # Keep only alphanumeric characters
-        tokenized_words = [lemmatizer.lemmatize(word) for word in tokenized_words]  # Lemmatize words
-        
+        tokenized_words = [
+            re.sub(r"[^a-z0-9]", "", word) for word in tokenized_words if word
+        ]  # Keep only alphanumeric characters
+        tokenized_words = [
+            lemmatizer.lemmatize(word) for word in tokenized_words
+        ]  # Lemmatize words
+
         if not tokenized_words:
             print(f"Empty sentence at index {counter}: {df.iloc[counter]}")
             continue
-        
+
         # Assign data to appropriate split
-        if split == 'dev':
-            val_data.append((tokenized_words, label_sexist, label_category, label_vector))
-        elif split == 'train':
-            train_data.append((tokenized_words, label_sexist, label_category, label_vector))
-        elif split == 'test':
-            test_data.append((tokenized_words, label_sexist, label_category, label_vector))
-    
+        if split == "dev":
+            val_data.append(
+                (tokenized_words, label_sexist, label_category, label_vector)
+            )
+        elif split == "train":
+            train_data.append(
+                (tokenized_words, label_sexist, label_category, label_vector)
+            )
+        elif split == "test":
+            test_data.append(
+                (tokenized_words, label_sexist, label_category, label_vector)
+            )
+
     return train_data, val_data, test_data
+
 
 class Lemmatizer:
     """
     Custom lemmatizer class for use with TfidfVectorizer.
     """
+
     def __init__(self):
         self.lemmatizer = WordNetLemmatizer()
 
     def __call__(self, sentence):
-        return [self.lemmatizer.lemmatize(word) for word in sentence.split() if len(word) > 2]
+        return [
+            self.lemmatizer.lemmatize(word)
+            for word in sentence.split()
+            if len(word) > 2
+        ]
+
 
 def create_label_mappings(df):
     """
     Create mappings for category and vector labels.
     """
-    category_mapping = {cat: i for i, cat in enumerate(df['label_category'].unique())}
-    vector_mapping = {vec: i for i, vec in enumerate(df['label_vector'].unique())}
+    category_mapping = {cat: i for i, cat in enumerate(df["label_category"].unique())}
+    vector_mapping = {vec: i for i, vec in enumerate(df["label_vector"].unique())}
     return category_mapping, vector_mapping
 
-def prepare_data(data, task='binary', category_mapping=None, vector_mapping=None):
+
+def prepare_data(data, task="binary", category_mapping=None, vector_mapping=None):
     """
     Prepare data for a specific classification task.
     """
-    texts = np.array([' '.join(sentence) for sentence, *_ in data])
-    
-    if task == 'binary':
+    texts = np.array([" ".join(sentence) for sentence, *_ in data])
+
+    if task == "binary":
         labels = np.array([1 if label == "sexist" else 0 for _, label, *_ in data])
-    elif task == '5-way':
+    elif task == "5-way":
         labels = np.array([category_mapping[label] for _, _, label, _ in data])
-    elif task == '11-way':
+    elif task == "11-way":
         labels = np.array([vector_mapping[label] for _, _, _, label in data])
     else:
         raise ValueError("Invalid task. Choose 'binary', '5-way', or '11-way'.")
-    
+
     return texts, labels
+
 
 def apply_smote(data, labels):
     """
     Apply SMOTE to handle class imbalance.
     """
-    smote = SMOTE(sampling_strategy='not majority')
+    smote = SMOTE(sampling_strategy="not majority")
     return smote.fit_resample(data, labels)
 
-def process_data(csv_path, use_smote=True, vectorize=True):
+
+def process_data(
+    csv_path,
+    use_smote=True,
+    vectorize=True,
+    translated_text=False,
+    use_normal_translated_both=False,
+):
     """
     Main function to process data for all classification tasks.
     """
     # Load and preprocess data
     df = pd.read_csv(csv_path)
     category_mapping, vector_mapping = create_label_mappings(df)
-    train_data, val_data, test_data = clean_text(df)
+    train_data, val_data, test_data = clean_text(
+        df, translated_text, use_normal_translated_both
+    )
 
     # Prepare datasets for each classification task
-    tasks = ['binary', '5-way', '11-way']
+    tasks = ["binary", "5-way", "11-way"]
     datasets = {}
 
     for task in tasks:
         # Prepare data for current task
-        train_texts, train_labels = prepare_data(train_data, task, category_mapping, vector_mapping)
-        val_texts, val_labels = prepare_data(val_data, task, category_mapping, vector_mapping)
-        test_texts, test_labels = prepare_data(test_data, task, category_mapping, vector_mapping)
+        train_texts, train_labels = prepare_data(
+            train_data, task, category_mapping, vector_mapping
+        )
+        val_texts, val_labels = prepare_data(
+            val_data, task, category_mapping, vector_mapping
+        )
+        test_texts, test_labels = prepare_data(
+            test_data, task, category_mapping, vector_mapping
+        )
 
         if vectorize:
             # Initialize and fit TfidfVectorizer
@@ -111,21 +179,30 @@ def process_data(csv_path, use_smote=True, vectorize=True):
             train_texts_vectorized = vectorizer.fit_transform(train_texts)
             val_texts_vectorized = vectorizer.transform(val_texts)
             test_texts_vectorized = vectorizer.transform(test_texts)
-            
+
             # Apply SMOTE for handling class imbalance if use_smote is True
             if use_smote:
-                train_texts_resampled, train_labels_resampled = apply_smote(train_texts_vectorized, train_labels)
+                train_texts_resampled, train_labels_resampled = apply_smote(
+                    train_texts_vectorized, train_labels
+                )  # type: ignore
             else:
-                train_texts_resampled, train_labels_resampled = train_texts_vectorized, train_labels
+                train_texts_resampled, train_labels_resampled = (
+                    train_texts_vectorized,
+                    train_labels,
+                )
         else:
+            use_smote = False
             train_texts_resampled, train_labels_resampled = train_texts, train_labels
 
         # Store prepared datasets
         datasets[task] = {
-            'train': (train_texts_resampled, train_labels_resampled),
-            'val': (val_texts if not vectorize else val_texts_vectorized, val_labels),
-            'test': (test_texts if not vectorize else test_texts_vectorized, test_labels),
-            'smote_applied': use_smote
+            "train": (train_texts_resampled, train_labels_resampled),
+            "val": (val_texts if not vectorize else val_texts_vectorized, val_labels),
+            "test": (
+                test_texts if not vectorize else test_texts_vectorized,
+                test_labels,
+            ),
+            "smote_applied": use_smote,
         }
 
     return datasets, category_mapping, vector_mapping
@@ -133,9 +210,9 @@ def process_data(csv_path, use_smote=True, vectorize=True):
 
 if __name__ == "__main__":
     # This block will only run if clean_data.py is executed directly
-    csv_path = 'edos_labelled_aggregated.csv'  # Update this path as needed
+    csv_path = "edos_labelled_aggregated.csv"  # Update this path as needed
     datasets, category_mapping, vector_mapping = process_data(csv_path, use_smote=True)
-    
+
     # Print dataset information
     print("Datasets prepared for the following tasks:")
     for task in datasets:
@@ -146,15 +223,21 @@ if __name__ == "__main__":
         print(f"  Number of classes: {len(np.unique(datasets[task]['train'][1]))}")
         print(f"  SMOTE applied: {datasets[task]['smote_applied']}")
 
-        unique_labels, counts = np.unique(datasets[task]['train'][1], return_counts=True)
+        unique_labels, counts = np.unique(
+            datasets[task]["train"][1], return_counts=True
+        )
         print("  Category-wise shapes after resampling:")
         for label, count in zip(unique_labels, counts):
-            if task == 'binary':
+            if task == "binary":
                 category = "sexist" if label == 1 else "not sexist"
-            elif task == '5-way':
-                category = list(category_mapping.keys())[list(category_mapping.values()).index(label)]
+            elif task == "5-way":
+                category = list(category_mapping.keys())[
+                    list(category_mapping.values()).index(label)
+                ]
             else:  # 11-way
-                category = list(vector_mapping.keys())[list(vector_mapping.values()).index(label)]
+                category = list(vector_mapping.keys())[
+                    list(vector_mapping.values()).index(label)
+                ]
             print(f"    {category}: {count}")
-        
+
         print()

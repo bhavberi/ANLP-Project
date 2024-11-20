@@ -1,3 +1,4 @@
+import os
 import random
 import argparse
 import numpy as np
@@ -10,13 +11,10 @@ from scipy.sparse import issparse
 from torch.utils.data import Dataset, DataLoader
 from peft import get_peft_model, LoraConfig, TaskType
 from transformers import (
-    BertTokenizer,
-    BertModel,
-    BertForSequenceClassification,
-    RobertaForSequenceClassification,
-    DistilBertForSequenceClassification,
-    AlbertForSequenceClassification,
+    AutoTokenizer,
+    AutoModelForSequenceClassification,
 )
+from sklearn.utils.class_weight import compute_class_weight
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 
 from utils.clean_data import process_data
@@ -33,6 +31,8 @@ models = {
     "distilbert-base": "distilbert-base-uncased",
     "albert-base": "albert-base-v2",
     "albert-large": "albert-large-v2",
+    "xlm-roberta-base": "FacebookAI/xlm-roberta-base",
+    "bert-base-multilingual": "google-bert/bert-base-multilingual-cased",
 }
 
 
@@ -52,6 +52,10 @@ def setup():
         else "cpu"
     )
     print(f"Using device: {device}")
+
+    os.makedirs("models", exist_ok=True)
+    os.makedirs("results", exist_ok=True)
+
     return device
 
 
@@ -89,6 +93,12 @@ class SentenceDataset(Dataset):
 
         return encodings
 
+    def get_class_weights(self):
+        class_weights = compute_class_weight(
+            "balanced", classes=np.unique(self.labels), y=self.labels
+        )
+        return class_weights
+
     def __len__(self):
         return len(self.texts)
 
@@ -104,30 +114,37 @@ class SentenceDataset(Dataset):
 
 
 class TransformerClassifier(nn.Module):
-    def __init__(self, n_classes=1, model="bert-tiny", LoRA=False):
+    def __init__(
+        self,
+        n_classes=1,
+        model="bert-tiny",
+        LoRA=False,
+        class_weights=None,
+        freeze=False,
+    ):
         super(TransformerClassifier, self).__init__()
 
-        assert model in models.keys(), f"Model {model} not found in available models."
+        assert n_classes > 1, "Number of classes must be greater than 1."
+        assert not (LoRA and freeze), "LoRA and freeze cannot be applied together."
 
-        if model.split("-")[0] == "bert":
-            self.transformer = BertForSequenceClassification.from_pretrained(
-                models[model], num_labels=n_classes
-            )
-        elif model.split("-")[0] == "roberta":
-            self.transformer = RobertaForSequenceClassification.from_pretrained(
-                models[model], num_labels=n_classes
-            )
-        elif model.split("-")[0] == "distilbert":
-            self.transformer = DistilBertForSequenceClassification.from_pretrained(
-                models[model], num_labels=n_classes
-            )
-        elif model.split("-")[0] == "albert":
-            self.transformer = AlbertForSequenceClassification.from_pretrained(
-                models[model], num_labels=n_classes
-            )
+        self.transformer = AutoModelForSequenceClassification.from_pretrained(
+            model, num_labels=n_classes
+        )
 
         if LoRA:
+            print("Applying LoRA to the model")
             self._apply_lora()
+        elif freeze:
+            print("Freezing the non-classification layers")
+            for name, param in self.transformer.named_parameters():
+                if "classifier" not in name:
+                    param.requires_grad = False
+
+        if class_weights is not None:
+            class_weights_tensor = torch.tensor(class_weights, dtype=torch.float)
+            self.criterion = nn.CrossEntropyLoss(weight=class_weights_tensor)
+        else:
+            self.criterion = nn.CrossEntropyLoss()
 
     def _apply_lora(self):
         # LoRA configuration for PEFT
@@ -140,42 +157,18 @@ class TransformerClassifier(nn.Module):
         )
 
         # Apply LoRA to the sequence classification model
-        self.transformer = get_peft_model(self.transformer, peft_config)
+        self.transformer = get_peft_model(self.transformer, peft_config)  # type: ignore
 
     def forward(self, input_ids, attention_mask, labels=None):
         # Forward pass through LoRA-adapted BERTForSequenceClassification
         outputs = self.transformer(
             input_ids=input_ids, attention_mask=attention_mask, labels=labels
         )
+
+        logits = outputs.logits
+        loss = self.criterion(logits, labels) if labels is not None else None
+        outputs.loss = loss
         return outputs
-
-
-class TransformerClassifierOld(nn.Module):
-    def __init__(self, n_classes=1, dropout=0.3, hidden_size=128, model="bert-tiny"):
-        super(TransformerClassifierOld, self).__init__()
-        self.transformer = BertModel.from_pretrained(models[model])
-        self.layer_norm = nn.LayerNorm(self.transformer.config.hidden_size)
-
-        self.classifier = nn.Sequential(
-            nn.Linear(self.transformer.config.hidden_size, hidden_size),
-            nn.ReLU(),
-            nn.Dropout(dropout),
-            nn.Linear(hidden_size, n_classes),
-        )
-
-    def forward(self, input_ids, attention_mask):
-        # Pass input through BERT
-        _, pooled_output = self.transformer(
-            input_ids=input_ids, attention_mask=attention_mask, return_dict=False
-        )
-
-        # Apply layer normalization
-        pooled_output = self.layer_norm(pooled_output)
-
-        # Pass through the classifier
-        output = self.classifier(pooled_output)
-
-        return output
 
 
 def train_model(
@@ -292,19 +285,44 @@ def evaluate_model(model, data_loader, device):
     return avg_loss, accuracy, f1, precision, recall
 
 
-def main(num_epochs=5, model_type="bert-tiny"):
-    # Process data
-    csv_path = "edos_labelled_aggregated.csv"
-    datasets, _, _ = process_data(csv_path, vectorize=False)
-
+def main(
+    num_epochs=5,
+    model_type="bert-tiny",
+    apply_lora=False,
+    freeze=False,
+    only_test=False,
+    csv_path="edos_labelled_aggregated.csv",
+    translated_text=False,
+    save_path_suffix="",
+    translated_and_normal=False,
+    save_results=False,
+):
     device = setup()
 
-    tokenizer = BertTokenizer.from_pretrained("bert-base-uncased", do_lower_case=True)
+    # assert model_type in models.keys(), f"Model {model_type} not found in available models."
+    if model_type in models.keys():
+        model_type = models[model_type]
+    else:
+        print(
+            f"Model {model_type} not found in available models. Using {model_type} directly as model."
+        )
+    print(f"Using model: {model_type}")
+
+    # Process data
+    datasets, _, _ = process_data(
+        csv_path,
+        vectorize=False,
+        translated_text=translated_text,
+        use_normal_translated_both=translated_and_normal,
+    )
+
+    tokenizer = AutoTokenizer.from_pretrained(model_type, do_lower_case=True)
+
+    results = {}
 
     # Train and evaluate models for each task
     for task in ["binary", "5-way", "11-way"]:
         print(f"\nTraining and evaluating {task} classification model")
-        print(f"SMOTE applied: {datasets[task]['smote_applied']}")
 
         # Prepare datasets
         train_texts, train_labels = datasets[task]["train"]
@@ -316,6 +334,8 @@ def main(num_epochs=5, model_type="bert-tiny"):
         val_dataset = SentenceDataset(val_texts, val_labels, tokenizer)
         test_dataset = SentenceDataset(test_texts, test_labels, tokenizer)
 
+        class_weights = train_dataset.get_class_weights()
+
         # Create data loaders
         train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
         val_loader = DataLoader(val_dataset, batch_size=64)
@@ -324,22 +344,33 @@ def main(num_epochs=5, model_type="bert-tiny"):
         # Initialize the model
         print("Creating model")
         n_classes = len(np.unique(train_labels))
-        model = TransformerClassifier(n_classes=n_classes, model=model_type).to(device)
+        model = TransformerClassifier(
+            n_classes=n_classes,
+            model=model_type,
+            class_weights=class_weights,
+            LoRA=apply_lora,
+            freeze=freeze,
+        ).to(device)
         optimizer = optim.AdamW(model.parameters(), lr=2e-5)
 
-        save_path = f"best_model_{task}_{model_type}.pth"
+        save_path = f"models/best_model_{task}_{model_type}"
+        if "/" in model_type:
+            save_path = f"models/best_model_{task}_{model_type.split('/')[-1]}"
+        save_path += save_path_suffix + ".pth"
+        print(f"Model will be saved at: {save_path}")
 
         # Train the model
-        train_model(
-            model,
-            train_loader,
-            val_loader,
-            optimizer,
-            device,
-            task,
-            num_epochs=num_epochs,
-            save_path=save_path,
-        )
+        if not only_test:
+            train_model(
+                model,
+                train_loader,
+                val_loader,
+                optimizer,
+                device,
+                task,
+                num_epochs=num_epochs,
+                save_path=save_path,
+            )
 
         # Load the best model
         model.load_state_dict(
@@ -359,6 +390,24 @@ def main(num_epochs=5, model_type="bert-tiny"):
         print(f"Macro Precision: {test_precision:.4f}")
         print(f"Macro Recall: {test_recall:.4f}")
 
+        results[task] = {
+            "loss": test_loss,
+            "accuracy": test_accuracy,
+            "f1": test_f1,
+            "precision": test_precision,
+            "recall": test_recall,
+        }
+    
+    # Save results
+    if save_results:
+        results_path = f"results/results_{model_type.split('/')[-1]}{save_path_suffix}.txt"
+        with open(results_path, "w") as f:
+            for task, metrics in results.items():
+                f.write(f"{task} classification\n")
+                for metric, value in metrics.items():
+                    f.write(f"{metric}: {value:.4f}\n")
+                f.write("\n")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -374,9 +423,64 @@ if __name__ == "__main__":
         "--model",
         type=str,
         default="bert-tiny",
-        choices=models.keys(),
-        help="Model to use for training (default: bert-tiny)",
+        help=f"Model to use for training (default: bert-tiny). Choices: {models.keys()}",
+    )
+    parser.add_argument(
+        "--lora",
+        action="store_true",
+        help="Apply LoRA to the model for training",
+    )
+    parser.add_argument(
+        "--freeze",
+        action="store_true",
+        help="Freeze the transformer model during training",
+    )
+    parser.add_argument(
+        "--test",
+        action="store_true",
+        help="Run the model only for testing",
+    )
+    parser.add_argument(
+        "--csv_path",
+        type=str,
+        default="edos_labelled_aggregated.csv",
+        help="Path to the CSV file containing the data (default: edos_labelled_aggregated.csv)",
+    )
+    parser.add_argument(
+        "--translated_text",
+        action="store_true",
+        help="Use translated text for training",
+    )
+    parser.add_argument(
+        "--translated_and_normal",
+        action="store_true",
+        help="Use both translated and normal text for training",
+    )
+    parser.add_argument(
+        "--save_path_suffix",
+        type=str,
+        default="",
+        help="Suffix to add to the model save path (default: '')",
+    )
+    parser.add_argument(
+        "--save_results",
+        action="store_true",
+        help="Save the results to a text file",
     )
     args = parser.parse_args()
 
-    main(args.num_epochs, args.model)
+    print("\n\n")
+    print("Arguments:", args)
+
+    main(
+        num_epochs=args.num_epochs,
+        model_type=args.model,
+        apply_lora=args.lora,
+        freeze=args.freeze,
+        only_test=args.test,
+        csv_path=args.csv_path,
+        translated_text=args.translated_text,
+        save_path_suffix=args.save_path_suffix,
+        translated_and_normal=args.translated_and_normal,
+        save_results=args.save_results
+    )

@@ -165,3 +165,6 @@ events.out.tfevents.*
 
 # NLTK
 nltk_data/
+
+# Saved Model files
+models/
