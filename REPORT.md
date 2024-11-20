@@ -3,15 +3,19 @@
 > **Team**: `UP_Wale` \
 > **Team Number**: 36
 >
-> **Team Members**: Divij (2021101001), Bhav Beri (2021111013), Maharnav Singhal(2021115001)
+> **Team Members**: Divij (2021101001), Bhav Beri (2021111013), Maharnav Singhal (2021115001)
 
 ---
 
 # Final Report
 
-![sexist_example](./images/sexist.png)
-![non_sexist_example](./images/non-sexist.png)
-<center> Teaser Image </center>
+<center>
+   <img src="./images/sexist.png" alt="Example image showing a sexist statement or content" style="max-width: 100%; height: auto;">
+   <img src="./images/non-sexist.png" alt="Example image showing a non-sexist statement or content" style="max-width: 100%; height: auto;"><br/>
+ Teaser Image 
+</center>
+
+<div style="page-break-after: always;" />
 
 ## Problem Statement
 
