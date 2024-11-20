@@ -294,7 +294,8 @@ def main(
                 new_data.append(dp)
                 new_labels.append(label)
                 count_of_labels[label] += 1
-
+        data = new_data
+        labels = new_labels
         # Divide the data into training and testing sets
         train_data, test_data, train_labels, test_labels = train_test_split(data, labels, test_size=0.2, random_state=42)
 
@@ -307,6 +308,8 @@ def main(
         # Test all the models
         trained_accuracies = []
         for layer, (prediction, true_label) in enumerate(zip(predictions, true_labels)):
+            if layer == 0:
+                continue
             accuracy = accuracy_score(true_label, prediction)
             print(f"Layer {layer} Accuracy: {accuracy}")
             trained_accuracies.append(accuracy)
@@ -317,6 +320,8 @@ def main(
         predictions, true_labels = model.probe(test_data, test_labels, tokenizer, device, models=random_logistic_regression_models)
         random_accuracies = []
         for layer, (prediction, true_label) in enumerate(zip(predictions, true_labels)):
+            if layer == 0:
+                continue
             accuracy = accuracy_score(true_label, prediction)
             print(f"Random Layer {layer} Accuracy: {accuracy}")
             random_accuracies.append(accuracy)
@@ -329,7 +334,7 @@ def main(
         plt.ylabel("Accuracy")
         plt.title("Accuracy of Logistic Regression Models")
         plt.legend(["Trained", "Random"])
-        plt.savefig(f"probing_accuracy_{task}_{model_type}.png")
+        plt.savefig(f"probing_accuracy_sentiment_{task}_{model_type}.png")
         plt.show()
         plt.clf()
         
