@@ -74,7 +74,7 @@ The following table shows the chosen baseline models for the 3 tasks along with 
 | **5-way**  | False     | 0.3066                  | 0.1737          | 0.2831  | 0.2831            |
 |            | True      | 0.3841                  | 0.2510          | 0.2878  | 0.2878            |
 | **12-way** | False     | 0.1501                  | 0.0718          | 0.1367  | 0.1367            |
-|            | True      | 0.2253                  | 0.1288          | 0.1402  | 0.1402            |
+|            | True      | 0.2123                  | 0.1288          | 0.1402  | 0.1402            |
 
 ### Observations
 
