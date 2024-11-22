@@ -92,10 +92,10 @@ The following table shows the performance of the Logistic Regression model with 
 
 | Task                      | Set            | Accuracy | F1 Score |
 | ------------------------- | -------------- | -------- | -------- |
-| **Binary Classification** | Validation Set | 0.8   | 0.7308    |
-|                           | Test Set       | 0.8077   | 0.7468    |
+| **Binary Classification** | Validation Set | 0.8      | 0.7308    |
+|                           | Test Set       | 0.8077   | 0.7422    |
 | **5-Way Classification**  | Validation Set | 0.7395   | 0.3999    |
-|                           | Test Set       | 0.7328   | 0.4045    |
+|                           | Test Set       | 0.7328   | 0.4055    |
 | **12-Way Classification** | Validation Set | 0.7190   | 0.2126    |
 |                           | Test Set       | 0.7115   | 0.2253    |
 
