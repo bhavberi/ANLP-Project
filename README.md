@@ -3,7 +3,7 @@
 > **Team**: `UP_Wale` \
 > **Team Number**: 36
 > 
-> **Team Members**: Divij (2021101001), Bhav Beri (2021111013),Maharnav Singhal (2021115001)
+> **Team Members**: Divij (2021101001), Bhav Beri (2021111013), Maharnav Singhal (2021115001)
 
 ----
 
